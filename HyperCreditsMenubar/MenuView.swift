@@ -129,368 +129,182 @@ final class ViewModel: ObservableObject {
 
 /// The SwiftUI view shown inside the popover when the menu bar item is clicked.
 ///
-/// Redesigned with a card-based layout, a hero balance ring, animated numeric
-/// transitions, a collapsible API-key section, and a polished footer. All
-/// underlying ViewModel logic (API calls, Keychain, launch-at-login) is
-/// unchanged — only the presentation layer has been rewritten.
+/// Minimal, airy design: one big balance number as the hero, generous spacing,
+/// restrained color (balance color is the only accent), no cards or material
+/// backgrounds. Inspired by Apple's Battery widget and trading apps.
 struct MenuView: View {
     @ObservedObject var viewModel: ViewModel
 
-    /// Controls whether the API-key disclosure section is expanded.
-    @State private var isAPIKeyExpanded: Bool = false
-    /// Drives the popover content entrance animation.
-    @State private var appeared: Bool = false
-
-    private let hyperAccent = Color(
-        red: 0.906, green: 0.345, blue: 0.078, opacity: 1.0
-    )
-
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                heroSection
-                if viewModel.needsOnboarding {
-                    onboardingCard
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-                if let error = viewModel.errorMessage {
-                    errorCard(error)
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                }
-                apiKeySection
-                footerSection
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity)
+        VStack(spacing: 0) {
+            heroSection
+            statusRow
+            refreshButton
+
+            spacer
+
+            apiKeySection
+
+            spacer
+
+            footerRow
+            versionText
         }
-        .frame(width: 320, height: 460)
-        .background(
-            ZStack {
-                // Subtle radial glow tinted by the balance color.
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                viewModel.balanceColor.opacity(0.10),
-                                Color.clear,
-                            ],
-                            center: .top,
-                            startRadius: 10,
-                            endRadius: 260
-                        )
-                    )
-                    .blur(radius: 20)
-                    .offset(y: -60)
-                Color(nsColor: .windowBackgroundColor)
-            }
-            .ignoresSafeArea()
-        )
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 8)
-        .animation(.easeOut(duration: 0.28), value: appeared)
-        .onAppear { appeared = true }
-        .animation(.easeInOut(duration: 0.3), value: viewModel.balance)
-        .animation(.easeInOut(duration: 0.3), value: viewModel.errorMessage)
-        .animation(.easeInOut(duration: 0.3), value: viewModel.needsOnboarding)
+        .padding(20)
+        .frame(width: 280)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .animation(.easeInOut(duration: 0.2), value: viewModel.balance)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.errorMessage)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.hasAPIKey)
+    }
+
+    /// A light vertical spacer between sections — spacing, not borders.
+    private var spacer: some View {
+        Spacer().frame(height: 16)
     }
 
     // MARK: - Hero
 
+    /// The balance number is the hero — big, bold, beautiful. Everything else
+    /// is secondary.
     private var heroSection: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                BalanceRingView(
-                    balance: viewModel.balance,
-                    color: viewModel.balanceColor,
-                    isLoading: viewModel.isLoading
-                )
-                .frame(width: 120, height: 120)
-
-                VStack(spacing: 2) {
-                    if viewModel.isLoading && viewModel.balance == nil {
-                        ProgressView()
-                            .scaleEffect(0.9)
-                    } else if let balance = viewModel.balance {
-                        Text("\(balance)")
-                            .font(.system(size: 38, weight: .heavy, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundColor(viewModel.balanceColor)
-                            .contentTransition(.opacity)
-                    } else if viewModel.needsOnboarding {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 34, weight: .bold))
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("?")
-                            .font(.system(size: 38, weight: .heavy, design: .rounded))
-                            .foregroundColor(.secondary)
-                    }
-
-                    Text("credits")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundColor(.secondary)
-                        .textCase(.uppercase)
-                        .tracking(1.2)
-                }
-            }
-            .padding(.top, 4)
-
-            // Last-updated + refresh row
-            HStack(spacing: 6) {
-                if let relative = viewModel.relativeUpdateText {
-                    Label(relative, systemImage: "clock")
-                        .labelStyle(.titleAndIcon)
-                } else if viewModel.isLoading {
-                    Text("Updating…")
+        VStack(spacing: 6) {
+            Group {
+                if viewModel.isLoading && viewModel.balance == nil {
+                    ProgressView()
+                        .controlSize(.small)
+                } else if let balance = viewModel.balance {
+                    Text("\(balance)")
+                        .font(.system(size: 52, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundColor(viewModel.balanceColor)
+                        .contentTransition(.opacity)
+                } else if viewModel.needsOnboarding {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 40, weight: .regular))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
                 } else {
-                    Text("Not yet updated")
+                    Text("—")
+                        .font(.system(size: 52, weight: .heavy, design: .rounded))
+                        .foregroundColor(.secondary)
                 }
             }
-            .font(.system(size: 11, weight: .regular, design: .rounded))
-            .foregroundStyle(.tertiary)
+            .frame(height: 56)
 
-            refreshButton
+            Text("credits")
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundColor(.secondary)
+                .textCase(.uppercase)
+                .tracking(1.5)
         }
-        .padding(16)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.regularMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(viewModel.balanceColor.opacity(0.15), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
+        .padding(.top, 4)
     }
 
-    // MARK: - Refresh button
+    // MARK: - Status
 
+    /// Subtle "Updated 2m ago" or "Not connected" — plain text, no icons.
+    private var statusRow: some View {
+        Group {
+            if let relative = viewModel.relativeUpdateText {
+                Text("Updated \(relative)")
+            } else {
+                Text("Not connected")
+            }
+        }
+        .font(.system(size: 11, weight: .regular, design: .rounded))
+        .foregroundStyle(.tertiary)
+        .padding(.top, 2)
+    }
+
+    // MARK: - Refresh
+
+    /// Minimal text button — no icon rotation, just a text change.
     private var refreshButton: some View {
         Button(action: { viewModel.refresh() }) {
-            HStack(spacing: 5) {
-                Image(systemName: "arrow.clockwise")
-                    .symbolRenderingMode(.hierarchical)
-                    .rotationEffect(.degrees(viewModel.isLoading ? 360 : 0))
-                    .animation(
-                        viewModel.isLoading
-                            ? .linear(duration: 0.9).repeatForever(autoreverses: false)
-                            : .easeOut(duration: 0.3),
-                        value: viewModel.isLoading
-                    )
-                Text(viewModel.isLoading ? "Refreshing" : "Refresh")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(
-                Capsule()
-                    .fill(hyperAccent.opacity(viewModel.isLoading ? 0.15 : 0.12))
-            )
-            .foregroundColor(hyperAccent)
+            Text(viewModel.isLoading ? "Refreshing…" : "Refresh")
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .foregroundColor(.secondary)
         }
         .buttonStyle(.plain)
         .disabled(viewModel.isLoading)
+        .padding(.top, 6)
     }
 
-    // MARK: - Onboarding
+    // MARK: - API Key
 
-    private var onboardingCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Image(systemName: "key.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(hyperAccent)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Welcome to HyperCredits")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Text("Connect your account to see your balance here.")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Button {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isAPIKeyExpanded = true
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text("Add your API key")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 10, weight: .bold))
-                }
-                .foregroundColor(hyperAccent)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(hyperAccent.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(hyperAccent.opacity(0.25), lineWidth: 1)
-        )
-    }
-
-    // MARK: - Error
-
-    private func errorCard(_ message: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.red.opacity(0.8))
-                Text(message)
-                    .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundColor(.red.opacity(0.85))
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Button(action: { viewModel.refresh() }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 10, weight: .bold))
-                    Text("Retry")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                }
-                .foregroundColor(.red.opacity(0.85))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.red.opacity(0.07))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(.red.opacity(0.2), lineWidth: 1)
-        )
-    }
-
-    // MARK: - API key section
-
+    /// Clean SecureField + Save button. No DisclosureGroup, no lock icons.
     private var apiKeySection: some View {
-        DisclosureGroup(isExpanded: $isAPIKeyExpanded) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Image(systemName: "key.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(hyperAccent)
-                    SecureField("sk-…", text: $viewModel.apiKeyInput)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 13, design: .monospaced))
-                }
-                Button(action: { viewModel.saveAPIKey() }) {
-                    Text("Save API Key")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(hyperAccent.opacity(viewModel.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.3 : 1.0))
-                        )
-                        .foregroundColor(.white)
-                }
-                .buttonStyle(.plain)
-                .transition(.opacity)
-            }
-            .padding(.top, 10)
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.secondary)
-                Text(viewModel.hasAPIKey ? "API Key saved" : "API Key")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                if viewModel.hasAPIKey {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.green)
-                }
-            }
-        }
-        .accentColor(hyperAccent)
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-    }
-
-    // MARK: - Footer
-
-    private var footerSection: some View {
         VStack(spacing: 8) {
-            // Launch at login
-            HStack {
-                Label("Launch at Login", systemImage: "arrow.up.forward.square")
-                    .labelStyle(.titleAndIcon)
-                    .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .symbolRenderingMode(.hierarchical)
-                Spacer()
-                Toggle("", isOn: $viewModel.launchAtLogin)
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .labelsHidden()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            )
+            HStack(spacing: 8) {
+                SecureField("Hyper API Key", text: $viewModel.apiKeyInput)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 13, design: .monospaced))
+                    .onSubmit { viewModel.saveAPIKey() }
 
-            // Links row
-            HStack(spacing: 0) {
-                if let url = URL(string: "https://hyper.charm.land") {
-                    Button {
-                        NSWorkspace.shared.open(url)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.system(size: 10, weight: .semibold))
-                            Text("hyper.charm.land")
-                                .font(.system(size: 11, weight: .regular, design: .rounded))
-                        }
-                        .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
+                Button(action: { viewModel.saveAPIKey() }) {
+                    Text("Save")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
                 }
-                Spacer()
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+
+            if viewModel.hasAPIKey {
+                Text("✓ Saved")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(.green)
+            } else if let url = URL(string: "https://hyper.charm.land") {
                 Button {
-                    NSApplication.shared.terminate(nil)
+                    NSWorkspace.shared.open(url)
                 } label: {
-                    Text("Quit")
+                    Text("Get your key at hyper.charm.land")
                         .font(.system(size: 11, weight: .regular, design: .rounded))
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .keyboardShortcut("q")
             }
-            .padding(.horizontal, 4)
-
-            // Version
-            Text("HyperCredits \(appVersion)")
-                .font(.system(size: 10, weight: .regular, design: .rounded))
-                .foregroundStyle(.tertiary)
         }
     }
 
-    /// Reads the marketing version + build from the main bundle.
+    // MARK: - Footer
+
+    /// Launch at Login toggle on the left, Quit on the right. Very subtle.
+    private var footerRow: some View {
+        HStack {
+            Toggle("Launch at Login", isOn: $viewModel.launchAtLogin)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+
+            Spacer()
+
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                Text("Quit")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut("q")
+        }
+    }
+
+    // MARK: - Version
+
+    /// Tiny version label at the very bottom.
+    private var versionText: some View {
+        Text("v\(appVersion)")
+            .font(.system(size: 10, weight: .regular, design: .rounded))
+            .foregroundStyle(.tertiary)
+            .padding(.top, 10)
+    }
+
+    /// Reads the marketing version from the main bundle.
     private var appVersion: String {
-        let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
-        let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-        return "v\(v).\(b)"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     }
 }

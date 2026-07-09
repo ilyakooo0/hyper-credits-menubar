@@ -42,9 +42,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: MenuView(viewModel: viewModel))
 
-        // Observe balance changes to update the menu bar title
-        statusTextCancellable = viewModel.$balance
-            .map { [weak viewModel] _ in viewModel?.statusBarItemText ?? "⚡?" }
+        // Observe balance changes to update the menu bar title.
+        // Shows "⚡…" while loading (no balance yet), otherwise the number.
+        statusTextCancellable = viewModel.$isLoading
+            .combineLatest(viewModel.$balance)
+            .map { [weak viewModel] isLoading, balance in
+                if isLoading && balance == nil { return "…" }
+                return viewModel?.statusBarItemText ?? "⚡?"
+            }
             .removeDuplicates()
             .receive(on: RunLoop.main)
             .sink { [weak self] text in
@@ -125,14 +130,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Loading pulse
 
+    /// Subtle pulse: 0.3s interval, opacity oscillates gently between 0.6–1.0.
     private func startPulse() {
         pulseStep = 0
         pulseTimer?.invalidate()
-        let timer = Timer(timeInterval: 0.12, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.3, repeats: true) { [weak self] _ in
             guard let self else { return }
             self.pulseStep += 1
             let wave = sin(Double(self.pulseStep) * 0.5)
-            let opacity = 0.35 + 0.65 * (0.5 + 0.5 * wave)
+            // 0.6 – 1.0 opacity range (subtle, not flashy)
+            let opacity = 0.8 + 0.2 * wave
             self.statusItem.button?.image = self.statusBarIcon(
                 color: self.viewModel.balanceColor,
                 opacity: opacity
