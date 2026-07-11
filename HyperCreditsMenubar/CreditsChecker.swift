@@ -83,6 +83,13 @@ final class CreditsChecker: CreditsChecking {
         .badServerResponse,
     ]
 
+    /// Client-error status codes that are nonetheless worth retrying: both are the server
+    /// telling us to come back later rather than that the request itself is wrong.
+    private static let retryableStatusCodes: Set<Int> = [
+        408,  // Request Timeout
+        429,  // Too Many Requests
+    ]
+
     private let session: URLSession
     private let retryBaseDelay: Duration
 
@@ -171,7 +178,7 @@ final class CreditsChecker: CreditsChecking {
         default:
             throw AttemptFailure(
                 underlying: .requestFailed("HTTP \(httpResponse.statusCode)"),
-                isRetryable: false
+                isRetryable: Self.retryableStatusCodes.contains(httpResponse.statusCode)
             )
         }
 

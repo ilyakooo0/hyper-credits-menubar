@@ -178,6 +178,18 @@ final class CreditsCheckerTests: XCTestCase {
         XCTAssertEqual(StubURLProtocol.requestCount, 3)
     }
 
+    func testRetriesOnRateLimitThenSucceeds() async throws {
+        StubURLProtocol.enqueue(
+            .status(429, Data()),
+            .status(200, #"{"balance": 3}"#.data(using: .utf8)!)
+        )
+
+        let balance = try await makeStubbedChecker().fetchBalance(apiKey: "sk-test")
+
+        XCTAssertEqual(balance, 3)
+        XCTAssertEqual(StubURLProtocol.requestCount, 2)
+    }
+
     func testDoesNotRetryOnUnauthorized() async {
         StubURLProtocol.enqueue(.status(401, Data()))
 
@@ -359,8 +371,23 @@ final class KeychainStoreTests: XCTestCase {
         XCTAssertTrue(store.save("sk-second"))
 
         XCTAssertEqual(store.load(), "sk-second")
-        // Overwriting means deleting first; otherwise the add would hit errSecDuplicateItem.
-        XCTAssertEqual(backing.deleteCallCount, 2)
+        // The first save adds straight into an empty keychain. Only the second hits
+        // errSecDuplicateItem and has to delete before re-adding.
+        XCTAssertEqual(backing.deleteCallCount, 1)
+    }
+
+    func testRejectedSaveLeavesTheExistingKeyIntact() {
+        // Deleting before adding would make a rejected save destroy the working key the
+        // user already had, leaving them with nothing.
+        let backing = FakeKeychain()
+        let store = makeStore(backing: backing)
+
+        XCTAssertTrue(store.save("sk-original"))
+
+        backing.addStatus = errSecInteractionNotAllowed  // e.g. the keychain locked meanwhile
+        XCTAssertFalse(store.save("sk-replacement"))
+
+        XCTAssertEqual(store.load(), "sk-original")
     }
 
     func testSaveEmptyStringIsStored() {

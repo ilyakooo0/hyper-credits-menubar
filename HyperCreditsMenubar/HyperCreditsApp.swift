@@ -43,10 +43,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Observe published changes (balance + isLoading) to update the menu bar title.
         // CombineLatest fires when either published property changes.
+        //
+        // The title is built from the values the publisher hands us, not by reading the
+        // view model back: `@Published` emits in `willSet`, so the property still holds
+        // its old value while this closure runs.
+        //
+        // Delivery is hopped through `DispatchQueue.main` rather than `RunLoop.main`,
+        // whose Combine scheduler only runs in the default run loop mode — the title
+        // would freeze while a menu or a scroll was tracking.
         statusTextCancellable = Publishers.CombineLatest(viewModel.$balance, viewModel.$isLoading)
-            .map { [weak viewModel] _, _ in viewModel?.statusBarItemText ?? "⚡?" }
+            .map { balance, isLoading in
+                ViewModel.statusBarText(balance: balance, isLoading: isLoading)
+            }
             .removeDuplicates()
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] text in
                 self?.statusItem.button?.title = text
             }

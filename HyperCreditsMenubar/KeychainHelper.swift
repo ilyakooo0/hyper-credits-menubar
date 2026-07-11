@@ -41,14 +41,20 @@ struct KeychainStore {
 
     /// Saves the given API key, overwriting any existing entry.
     /// - Returns: `true` if the key was stored; `false` if the keychain rejected it.
-    @discardableResult
     func save(_ key: String) -> Bool {
-        delete()
         guard let data = key.data(using: .utf8) else { return false }
 
         var query = baseQuery
         query[kSecValueData as String] = data
         query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+
+        // Add first and only clear the way once the keychain has told us something is
+        // already there. Deleting up front would mean a rejected add — locked keychain,
+        // denied access — leaves the user with no key at all, having destroyed the
+        // working one they had.
+        let status = addItem(query as CFDictionary, nil)
+        if status == errSecSuccess { return true }
+        guard status == errSecDuplicateItem, delete() else { return false }
 
         return addItem(query as CFDictionary, nil) == errSecSuccess
     }

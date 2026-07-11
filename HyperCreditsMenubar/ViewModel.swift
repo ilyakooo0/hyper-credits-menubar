@@ -68,7 +68,8 @@ final class ViewModel: ObservableObject {
     /// A human-readable error message, shown when the balance can't be fetched.
     @Published var errorMessage: String?
 
-    /// The API key entered by the user (loaded from Keychain on init).
+    /// The API key draft bound to the text field. Two-way bound to the `SecureField`,
+    /// so it changes on every keystroke — never fetch with it, use `activeAPIKey`.
     @Published var apiKeyInput: String = ""
 
     /// Timestamp of the last successful balance fetch.
@@ -105,6 +106,13 @@ final class ViewModel: ObservableObject {
     /// Flag to suppress the didSet during initial setup.
     private var isInitializingLaunchAtLogin = true
 
+    /// The key requests actually go out with: what is in the Keychain, not what is
+    /// currently in the text field. Keeping these separate stops a timer or wake
+    /// refresh from firing with a half-typed key — or, if the field has been cleared
+    /// to paste a new one, from taking the empty-key path and wiping the balance,
+    /// last-updated time and history out from under the user.
+    private var activeAPIKey: String
+
     private let checker: CreditsChecking
     private let defaults: UserDefaults
 
@@ -129,7 +137,9 @@ final class ViewModel: ObservableObject {
     init(checker: CreditsChecking = CreditsChecker(), defaults: UserDefaults = .standard) {
         self.checker = checker
         self.defaults = defaults
-        apiKeyInput = KeychainHelper.load() ?? ""
+        let storedKey = KeychainHelper.load() ?? ""
+        apiKeyInput = storedKey
+        activeAPIKey = storedKey
         // Assigning in init doesn't fire didSet, so this load doesn't re-post
         // the change notification or write back to defaults.
         refreshIntervalMinutes = RefreshInterval.stored(in: defaults)
@@ -154,12 +164,17 @@ final class ViewModel: ObservableObject {
     }()
 
     /// Formats an integer with thousands grouping separator.
-    private func formatBalance(_ value: Int) -> String {
-        Self.balanceFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    private static func formatBalance(_ value: Int) -> String {
+        balanceFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
     /// The text to show in the menu bar: `⚡…` while loading, `⚡?` when no balance, `⚡{balance}` otherwise.
-    var statusBarItemText: String {
+    ///
+    /// Takes the balance and loading flag as parameters rather than reading the
+    /// properties: `@Published` publishes in `willSet`, so a Combine subscriber that
+    /// called back into the view model would see the *pre-change* value and render a
+    /// title one update behind.
+    static func statusBarText(balance: Int?, isLoading: Bool) -> String {
         if isLoading && balance == nil {
             return "⚡…"
         }
@@ -169,10 +184,15 @@ final class ViewModel: ObservableObject {
         return "⚡?"
     }
 
+    /// The text to show in the menu bar for the current state.
+    var statusBarItemText: String {
+        Self.statusBarText(balance: balance, isLoading: isLoading)
+    }
+
     /// The formatted balance string for display in the popover.
     var formattedBalance: String {
         guard let balance = balance else { return "?" }
-        return formatBalance(balance)
+        return Self.formatBalance(balance)
     }
 
     /// The color for the balance display based on thresholds.
@@ -226,8 +246,10 @@ final class ViewModel: ObservableObject {
     func refresh() {
         refreshTask?.cancel()
 
-        let key = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Deliberately the saved key rather than `apiKeyInput`: see `activeAPIKey`.
+        let key = activeAPIKey
         guard !key.isEmpty else {
+            refreshTask = nil
             balance = nil
             errorMessage = nil
             lastUpdated = nil
@@ -297,6 +319,11 @@ final class ViewModel: ObservableObject {
     // MARK: - Low Balance Notification
 
     private func sendLowBalanceNotification(balance: Int) {
+        // Build the body here, on the main actor. `getNotificationSettings` calls back on
+        // a background queue, and the shared `balanceFormatter` is main-actor state — the
+        // status bar title formats against the very same instance.
+        let body = "Low Hyper credits: \(Self.formatBalance(balance)) remaining"
+
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
@@ -304,12 +331,13 @@ final class ViewModel: ObservableObject {
             }
             let content = UNMutableNotificationContent()
             content.title = "Low Hyper Credits"
-            let balanceStr = Self.balanceFormatter.string(from: NSNumber(value: balance)) ?? "\(balance)"
-            content.body = "Low Hyper credits: \(balanceStr) remaining"
+            content.body = body
             content.sound = .default
 
+            // A fixed identifier makes a later alert replace the delivered one in place,
+            // which updates the text without ever notifying the user again.
             let request = UNNotificationRequest(
-                identifier: "low-balance-alert",
+                identifier: "low-balance-alert-\(UUID().uuidString)",
                 content: content,
                 trigger: nil
             )
@@ -329,6 +357,8 @@ final class ViewModel: ObservableObject {
                 errorMessage = "Could not delete API key from Keychain. It may be locked."
                 return
             }
+            apiKeyInput = ""
+            activeAPIKey = ""
             // refresh() with an empty key clears balance, error, history, and
             // cancels any in-flight task from the previous key.
             refresh()
@@ -338,9 +368,20 @@ final class ViewModel: ObservableObject {
                 errorMessage = "Could not save API key to Keychain. It may be locked."
                 return
             }
-            // Clear history from any previous key so the sparkline and trend
-            // don't mix data from different accounts.
-            history.removeAll()
+            // A different key is a different account, so everything derived from the old
+            // one has to go — not just the history behind the sparkline and trend. A
+            // carried-over balance would be displayed as the new account's until the
+            // fetch lands, and it would stand in as `previousBalance` for the low-balance
+            // threshold check, which would then compare two unrelated accounts.
+            if key != activeAPIKey {
+                balance = nil
+                lastUpdated = nil
+                errorMessage = nil
+                history.removeAll()
+            }
+            // Show the trimmed key that was actually stored.
+            apiKeyInput = key
+            activeAPIKey = key
             refresh()
         }
 
@@ -359,10 +400,20 @@ final class ViewModel: ObservableObject {
     // MARK: - Launch at Login
 
     func updateLaunchAtLogin(_ enabled: Bool) {
-        if enabled {
-            try? SMAppService.mainApp.register()
-        } else {
-            try? SMAppService.mainApp.unregister()
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            errorMessage = "Could not \(enabled ? "enable" : "disable") launch at login: "
+                + error.localizedDescription
+            // Snap the switch back to what the system actually did, suppressing the
+            // didSet so this doesn't recurse into another register/unregister attempt.
+            isInitializingLaunchAtLogin = true
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+            isInitializingLaunchAtLogin = false
         }
     }
 }
