@@ -1,7 +1,7 @@
 import XCTest
 import Foundation
 import Security
-@testable import HyperCreditsMenubar
+@testable import UsageMenubar
 
 final class CreditsCheckerTests: XCTestCase {
 

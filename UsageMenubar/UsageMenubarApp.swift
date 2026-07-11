@@ -188,7 +188,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let quitItem = NSMenuItem(title: "Quit HyperCredits", action: #selector(quit(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit UsageMenubar", action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 
@@ -233,7 +233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 // MARK: - App Entry Point
 
 @main
-struct HyperCreditsApp: App {
+struct UsageMenubarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

@@ -82,7 +82,7 @@ struct KeychainStore {
 
 /// Simple wrapper around the macOS Keychain for storing the Hyper API key.
 enum KeychainHelper {
-    private static let service = "com.ilyakooo0.hyper-credits-menubar"
+    private static let service = "com.ilyakooo0.usage-menubar"
     private static let account = "hyper-api-key"
 
     private static let store = KeychainStore(service: service, account: account)

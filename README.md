@@ -1,4 +1,4 @@
-# HyperCreditsMenubar
+# UsageMenubar
 
 A macOS menu bar application that displays your [Hyper (Charm)](https://hyper.charm.land) credit balance — and, if you use the Claude Code CLI, your Claude subscription limits alongside it.
 
@@ -24,20 +24,20 @@ A macOS menu bar application that displays your [Hyper (Charm)](https://hyper.ch
 
 ```bash
 brew tap ilyakooo0/tap
-brew install --cask hyper-credits-menubar
+brew install --cask usage-menubar
 ```
 
 Or in one command:
 
 ```bash
-brew install --cask ilyakooo0/tap/hyper-credits-menubar
+brew install --cask ilyakooo0/tap/usage-menubar
 ```
 
 ### Download the pre-built release
 
-1. Go to the [Releases page](https://github.com/ilyakooo0/hyper-credits-menubar/releases)
-2. Download the latest `HyperCreditsMenubar-*.zip`
-3. Unzip and move `HyperCreditsMenubar.app` to `/Applications`
+1. Go to the [Releases page](https://github.com/ilyakooo0/usage-menubar/releases)
+2. Download the latest `UsageMenubar-*.zip`
+3. Unzip and move `UsageMenubar.app` to `/Applications`
 4. Launch the app — it will appear in your menu bar as ⚡
 
 > **Note:** Releases are **ad-hoc signed** — the CI build applies `codesign -s -` to the app, which gives it a stable code identity but is *not* an Apple Developer ID signature. macOS will still warn you on first launch: right-click the app → **Open**, or allow it in **System Settings → Privacy & Security**. Removing that prompt entirely requires a paid Developer ID certificate and notarization.
@@ -88,20 +88,20 @@ The app also refreshes automatically when your Mac wakes from sleep.
 
 ```bash
 # Clone the repository
-git clone https://github.com/ilyakooo0/hyper-credits-menubar.git
-cd hyper-credits-menubar
+git clone https://github.com/ilyakooo0/usage-menubar.git
+cd usage-menubar
 
 # Generate the Xcode project
 xcodegen generate
 
 # Open in Xcode
-open HyperCreditsMenubar.xcodeproj
+open UsageMenubar.xcodeproj
 
 # Or build from the command line
 xcodebuild \
-  -scheme HyperCreditsMenubar \
+  -scheme UsageMenubar \
   -configuration Release \
-  -archivePath build/HyperCreditsMenubar.xcarchive \
+  -archivePath build/UsageMenubar.xcarchive \
   archive \
   CODE_SIGNING_ALLOWED=NO
 ```
@@ -110,7 +110,7 @@ xcodebuild \
 
 ```bash
 xcodebuild test \
-  -scheme HyperCreditsMenubar \
+  -scheme UsageMenubar \
   -configuration Debug \
   -destination "platform=macOS"
 ```
@@ -130,10 +130,10 @@ The version is derived automatically from the commit timestamp in the GitHub Act
 ## Project structure
 
 ```
-hyper-credits-menubar/
+usage-menubar/
 ├── project.yml                          # xcodegen project definition
-├── HyperCreditsMenubar/
-│   ├── HyperCreditsApp.swift            # @main App, NSStatusBar, timer, sleep/wake
+├── UsageMenubar/
+│   ├── UsageMenubarApp.swift            # @main App, NSStatusBar, timer, sleep/wake
 │   ├── ViewModel.swift                  # Observable state: balance, Claude usage, refresh, notifications
 │   ├── MenuView.swift                   # SwiftUI popover view
 │   ├── CreditsChecker.swift             # API client (GET /v1/credits)
@@ -141,9 +141,9 @@ hyper-credits-menubar/
 │   ├── KeychainHelper.swift             # Keychain wrapper for API key
 │   ├── VersionFormatter.swift           # YYYY.MM.DD.HHHH formatting
 │   ├── Info.plist                       # LSUIElement=true (agent app)
-│   ├── HyperCreditsMenubar.entitlements # Network client; deliberately not sandboxed
+│   ├── UsageMenubar.entitlements # Network client; deliberately not sandboxed
 │   └── Assets.xcassets/                 # App icon, accent color
-├── HyperCreditsMenubarTests/
+├── UsageMenubarTests/
 │   ├── CreditsCheckerTests.swift        # API, retry, fractional balance, keychain tests
 │   ├── ClaudeUsageClientTests.swift     # Usage decoding, token refresh, retry, credential store
 │   └── VersionFormatterTests.swift      # Version formatting tests

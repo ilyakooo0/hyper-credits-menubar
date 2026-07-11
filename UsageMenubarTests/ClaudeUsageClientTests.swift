@@ -1,6 +1,6 @@
 import XCTest
 import Foundation
-@testable import HyperCreditsMenubar
+@testable import UsageMenubar
 
 /// The instant every test pretends it is. Injected into the client, so token expiry is
 /// a decision the test makes rather than a race against the wall clock.

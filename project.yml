@@ -1,7 +1,7 @@
 # xcodegen project definition — run `xcodegen generate` to (re)create
-# HyperCreditsMenubar.xcodeproj. The .xcodeproj is not committed; this file is
+# UsageMenubar.xcodeproj. The .xcodeproj is not committed; this file is
 # the source of truth for project structure and build settings.
-name: HyperCreditsMenubar
+name: UsageMenubar
 
 options:
   # Reverse-DNS prefix xcodegen uses when it needs to synthesize a bundle id.
@@ -32,24 +32,24 @@ settings:
 
 targets:
   # ── The menu bar app ───────────────────────────────────────────────────
-  HyperCreditsMenubar:
+  UsageMenubar:
     type: application
     platform: macOS
     sources:
-      - path: HyperCreditsMenubar
+      - path: UsageMenubar
         excludes:
           # Referenced explicitly via INFOPLIST_FILE / CODE_SIGN_ENTITLEMENTS,
           # so they must not also be compiled in as resources.
           - "Info.plist"
           - "*.entitlements"
     resources:
-      - HyperCreditsMenubar/Assets.xcassets
+      - UsageMenubar/Assets.xcassets
     info:
-      path: HyperCreditsMenubar/Info.plist
+      path: UsageMenubar/Info.plist
       properties:
-        CFBundleName: HyperCreditsMenubar
-        CFBundleDisplayName: Hyper Credits
-        CFBundleIdentifier: com.ilyakooo0.hyper-credits-menubar
+        CFBundleName: UsageMenubar
+        CFBundleDisplayName: Usage Menubar
+        CFBundleIdentifier: com.ilyakooo0.usage-menubar
         # Overwritten by CI — see the note on MARKETING_VERSION above.
         CFBundleVersion: "1"
         CFBundleShortVersionString: "1.0.0"
@@ -59,14 +59,14 @@ targets:
         NSHighResolutionCapable: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ilyakooo0.hyper-credits-menubar
-        PRODUCT_NAME: HyperCreditsMenubar
-        INFOPLIST_FILE: HyperCreditsMenubar/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.ilyakooo0.usage-menubar
+        PRODUCT_NAME: UsageMenubar
+        INFOPLIST_FILE: UsageMenubar/Info.plist
         # Grants the outgoing-network-connection entitlement needed to reach
         # the Hyper and Claude APIs, and deliberately does not sandbox the app —
         # see the comment in the entitlements file. Stripped in CI's archive step
         # (unsigned builds can't carry entitlements).
-        CODE_SIGN_ENTITLEMENTS: HyperCreditsMenubar/HyperCreditsMenubar.entitlements
+        CODE_SIGN_ENTITLEMENTS: UsageMenubar/UsageMenubar.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         LD_RUNPATH_SEARCH_PATHS:
@@ -76,32 +76,32 @@ targets:
   # ── Unit tests ─────────────────────────────────────────────────────────
   # Hosted by the app target (BUNDLE_LOADER/TEST_HOST) so tests can reach the
   # app's internal types without re-declaring them.
-  HyperCreditsMenubarTests:
+  UsageMenubarTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - path: HyperCreditsMenubarTests
+      - path: UsageMenubarTests
     dependencies:
-      - target: HyperCreditsMenubar
+      - target: UsageMenubar
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ilyakooo0.hyper-credits-menubar.tests
-        PRODUCT_NAME: HyperCreditsMenubarTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.ilyakooo0.usage-menubar.tests
+        PRODUCT_NAME: UsageMenubarTests
         BUNDLE_LOADER: "$(TEST_HOST)"
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/HyperCreditsMenubar.app/Contents/MacOS/HyperCreditsMenubar"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/UsageMenubar.app/Contents/MacOS/UsageMenubar"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
 
 schemes:
-  HyperCreditsMenubar:
+  UsageMenubar:
     build:
       targets:
-        HyperCreditsMenubar: all
-        HyperCreditsMenubarTests: [test]
+        UsageMenubar: all
+        UsageMenubarTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - HyperCreditsMenubarTests
+        - UsageMenubarTests
     archive:
       config: Release

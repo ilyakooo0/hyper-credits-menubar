@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>HyperCreditsMenubar</string>
+    <string>UsageMenubar</string>
     <key>CFBundleDisplayName</key>
-    <string>Hyper Credits</string>
+    <string>Usage Menubar</string>
     <key>CFBundleIdentifier</key>
-    <string>com.ilyakooo0.hyper-credits-menubar</string>
+    <string>com.ilyakooo0.usage-menubar</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>

@@ -7,7 +7,7 @@ import UserNotifications
 /// Posted when the user changes the refresh interval, so the app delegate can
 /// restart its timer with the new period.
 extension Notification.Name {
-    static let refreshIntervalDidChange = Notification.Name("com.ilyakooo0.hyper-credits-menubar.refreshIntervalDidChange")
+    static let refreshIntervalDidChange = Notification.Name("com.ilyakooo0.usage-menubar.refreshIntervalDidChange")
 }
 
 /// The direction the balance has moved over the most recent history points.
@@ -431,7 +431,7 @@ final class ViewModel: ObservableObject {
                 return
             }
             let content = UNMutableNotificationContent()
-            content.title = "Low Hyper Credits"
+            content.title = "Low Usage Menubar"
             content.body = body
             content.sound = .default
 

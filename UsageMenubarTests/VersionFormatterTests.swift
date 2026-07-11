@@ -1,5 +1,5 @@
 import XCTest
-@testable import HyperCreditsMenubar
+@testable import UsageMenubar
 
 final class VersionFormatterTests: XCTestCase {
 

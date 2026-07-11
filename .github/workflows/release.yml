@@ -74,7 +74,7 @@ jobs:
 
             props = (
                 doc.setdefault("targets", {})
-                .setdefault("HyperCreditsMenubar", {})
+                .setdefault("UsageMenubar", {})
                 .setdefault("info", {})
                 .setdefault("properties", {})
             )
@@ -116,7 +116,7 @@ jobs:
       - name: Run tests
         run: |
           xcodebuild test \
-            -scheme HyperCreditsMenubar \
+            -scheme UsageMenubar \
             -configuration Debug \
             -destination "platform=macOS" \
             CODE_SIGNING_ALLOWED=NO \
@@ -128,9 +128,9 @@ jobs:
       - name: Archive
         run: |
           xcodebuild archive \
-            -scheme HyperCreditsMenubar \
+            -scheme UsageMenubar \
             -configuration Release \
-            -archivePath build/HyperCreditsMenubar.xcarchive \
+            -archivePath build/UsageMenubar.xcarchive \
             -destination "generic/platform=macOS" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -143,8 +143,8 @@ jobs:
         run: |
           mkdir -p build/export
           # Simply copy the .app from the archive (no signing during the build)
-          cp -R "build/HyperCreditsMenubar.xcarchive/Products/Applications/HyperCreditsMenubar.app" \
-                "build/export/HyperCreditsMenubar.app"
+          cp -R "build/UsageMenubar.xcarchive/Products/Applications/UsageMenubar.app" \
+                "build/export/UsageMenubar.app"
 
       # ── Ad-hoc code signing ───────────────────────────────────────────
       # `-s -` is an ad-hoc signature: no certificate, no Apple identity.
@@ -156,7 +156,7 @@ jobs:
       - name: Ad-hoc code sign the app
         run: |
           set -eo pipefail
-          APP="build/export/HyperCreditsMenubar.app"
+          APP="build/export/UsageMenubar.app"
           codesign --force --deep -s - "$APP"
           echo "── Verifying signature ──"
           codesign --verify --deep --strict --verbose=2 "$APP"
@@ -170,7 +170,7 @@ jobs:
         run: |
           set -eo pipefail
           cd build/export
-          ditto -c -k --keepParent HyperCreditsMenubar.app "HyperCreditsMenubar-${VERSION}.zip"
+          ditto -c -k --keepParent UsageMenubar.app "UsageMenubar-${VERSION}.zip"
 
       # ── Detect notarization credentials ───────────────────────────────
       # Secrets are checked in a shell step (not a step-level `if:`) so the
@@ -223,7 +223,7 @@ jobs:
           chmod 600 "$KEY_FILE"
 
           echo "── Submitting to Apple notary service ──"
-          xcrun notarytool submit "build/export/HyperCreditsMenubar-${VERSION}.zip" \
+          xcrun notarytool submit "build/export/UsageMenubar-${VERSION}.zip" \
             --key "$KEY_FILE" \
             --key-id "$NOTARY_API_KEY_ID" \
             --issuer "$NOTARY_API_KEY_ISSUER" \
@@ -231,8 +231,8 @@ jobs:
             --timeout 30m
 
           echo "── Stapling ticket to the app ──"
-          xcrun stapler staple "build/export/HyperCreditsMenubar.app"
-          xcrun stapler validate "build/export/HyperCreditsMenubar.app"
+          xcrun stapler staple "build/export/UsageMenubar.app"
+          xcrun stapler validate "build/export/UsageMenubar.app"
 
       # ── Package release artifacts ─────────────────────────────────────
       # Re-zip from the .app so the published archive picks up a stapled
@@ -241,19 +241,19 @@ jobs:
         run: |
           set -eo pipefail
           cd build/export
-          rm -f "HyperCreditsMenubar-${VERSION}.zip"
-          ditto -c -k --keepParent HyperCreditsMenubar.app "HyperCreditsMenubar-${VERSION}.zip"
+          rm -f "UsageMenubar-${VERSION}.zip"
+          ditto -c -k --keepParent UsageMenubar.app "UsageMenubar-${VERSION}.zip"
           # Also create a stable-named zip for the Homebrew Cask
-          cp "HyperCreditsMenubar-${VERSION}.zip" "HyperCreditsMenubar-latest.zip"
-          cp "HyperCreditsMenubar-${VERSION}.zip" ../../
-          cp "HyperCreditsMenubar-latest.zip" ../../
+          cp "UsageMenubar-${VERSION}.zip" "UsageMenubar-latest.zip"
+          cp "UsageMenubar-${VERSION}.zip" ../../
+          cp "UsageMenubar-latest.zip" ../../
 
       # ── Upload build artifact ─────────────────────────────────────────
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HyperCreditsMenubar-${{ env.VERSION }}
-          path: HyperCreditsMenubar-${{ env.VERSION }}.zip
+          name: UsageMenubar-${{ env.VERSION }}
+          path: UsageMenubar-${{ env.VERSION }}.zip
           retention-days: 30
 
       # ── Create GitHub Release ─────────────────────────────────────────
@@ -263,13 +263,13 @@ jobs:
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
           body: |
-            ## HyperCreditsMenubar ${{ env.VERSION }}
+            ## UsageMenubar ${{ env.VERSION }}
 
-            **Download:** `HyperCreditsMenubar-${{ env.VERSION }}.zip`
+            **Download:** `UsageMenubar-${{ env.VERSION }}.zip`
 
             ### Installation
-            1. Download and unzip `HyperCreditsMenubar-${{ env.VERSION }}.zip`
-            2. Move `HyperCreditsMenubar.app` to your `/Applications` folder
+            1. Download and unzip `UsageMenubar-${{ env.VERSION }}.zip`
+            2. Move `UsageMenubar.app` to your `/Applications` folder
             3. Launch the app — it will appear in your menu bar as ⚡
             4. Click the ⚡ icon, enter your Hyper API key, and click Save
 
@@ -280,7 +280,7 @@ jobs:
             ### Changes
             Built from commit ${{ github.sha }}
           files: |
-            HyperCreditsMenubar-${{ env.VERSION }}.zip
-            HyperCreditsMenubar-latest.zip
+            UsageMenubar-${{ env.VERSION }}.zip
+            UsageMenubar-latest.zip
           draft: false
           prerelease: false

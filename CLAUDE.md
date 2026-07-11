@@ -1,9 +1,9 @@
-# HyperCreditsMenubar
+# UsageMenubar
 
 ## Architecture
 macOS menu bar app (SwiftUI, macOS 14+) showing Hyper (Charm) credit balance, plus
 Claude Code's Pro/Max usage limits when the CLI is signed in on the machine.
-- `HyperCreditsApp.swift` — @main App, NSStatusBar, timer, sleep/wake, popover
+- `UsageMenubarApp.swift` — @main App, NSStatusBar, timer, sleep/wake, popover
 - `ViewModel.swift` — Observable state: balance, Claude usage, refresh, notifications, history
 - `MenuView.swift` — SwiftUI popover view (balance, sparkline, Claude limits, settings)
 - `CreditsChecker.swift` — API client for `GET https://hyper.charm.land/v1/credits`
@@ -30,8 +30,8 @@ Keychain item (via `/usr/bin/security`), falling back to `~/.claude/.credentials
 ## Build
 - Uses [xcodegen](https://github.com/yonaskolb/XcodeGen) — `project.yml` is source of truth
 - `xcodegen generate` creates the .xcodeproj (not committed)
-- Build: `xcodebuild -scheme HyperCreditsMenubar -configuration Debug build`
-- Test: `xcodebuild test -scheme HyperCreditsMenubar -configuration Debug -destination "platform=macOS"`
+- Build: `xcodebuild -scheme UsageMenubar -configuration Debug build`
+- Test: `xcodebuild test -scheme UsageMenubar -configuration Debug -destination "platform=macOS"`
 - Swift 5.9, macOS 14.0 deployment target
 
 ## Conventions
