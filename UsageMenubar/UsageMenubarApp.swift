@@ -62,10 +62,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             viewModel.$claudeUsage
         )
         .map { balance, isLoading, claudeUsage in
-            ViewModel.statusBarText(
+            let fiveHour = claudeUsage?.fiveHour
+                .map { Int($0.utilization.rounded()) }
+            let sevenDay = claudeUsage?.sevenDay
+                .map { Int($0.utilization.rounded()) }
+                ?? claudeUsage?.sevenDayOpus
+                    .map { Int($0.utilization.rounded()) }
+            return ViewModel.statusBarText(
                 balance: balance,
                 isLoading: isLoading,
-                claudePercent: ViewModel.claudeHeadline(for: claudeUsage)?.percent
+                claudeFiveHourPercent: fiveHour,
+                claudeSevenDayPercent: sevenDay
             )
         }
         .removeDuplicates()

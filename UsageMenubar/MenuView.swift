@@ -248,16 +248,19 @@ struct MenuView: View {
 
     private func usageDetail(_ usage: ClaudeUsage) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let headline = ViewModel.claudeHeadline(for: usage) {
+            // The 5-hour window leads as the hero number, since it's the one
+            // most likely to bind and the one shown in the menu bar title.
+            if let fiveHour = usage.fiveHour {
+                let percent = Int(fiveHour.utilization.rounded())
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("\(headline.percent)%")
+                    Text("🕐 \(percent)%")
                         .font(Self.subheroFont)
-                        .foregroundColor(Self.usageColor(headline.percent))
+                        .foregroundColor(Self.usageColor(percent))
                         .contentTransition(.opacity)
 
                     Spacer(minLength: 0)
 
-                    if let resets = headline.resetsIn {
+                    if let resets = fiveHour.resetsInFormatted {
                         Text("resets in \(resets)")
                             .font(Self.footnoteFont)
                             .foregroundColor(.secondary)
@@ -266,9 +269,6 @@ struct MenuView: View {
             }
 
             VStack(alignment: .leading, spacing: 9) {
-                if let fiveHour = usage.fiveHour {
-                    window("5-hour", fiveHour)
-                }
                 if let sevenDay = usage.sevenDay {
                     window("7-day", sevenDay)
                 }

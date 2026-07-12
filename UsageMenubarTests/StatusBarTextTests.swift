@@ -1,7 +1,7 @@
 import XCTest
 @testable import UsageMenubar
 
-/// The menu bar title and the Claude number it is built from.
+/// The menu bar title and the Claude numbers it is built from.
 ///
 /// Balances are kept under 1,000 so the assertions don't depend on the grouping
 /// separator of whatever locale the test happens to run in.
@@ -11,27 +11,42 @@ final class StatusBarTextTests: XCTestCase {
     // MARK: - Title
 
     func testBothServices() {
-        let title = ViewModel.statusBarText(balance: 42, isLoading: false, claudePercent: 62)
-        XCTAssertEqual(title, "⚡42 · 62%")
+        let title = ViewModel.statusBarText(
+            balance: 42, isLoading: false,
+            claudeFiveHourPercent: 62, claudeSevenDayPercent: 8
+        )
+        XCTAssertEqual(title, "⚡42 · 🕐62% · 📅8%")
     }
 
     func testHyperOnly() {
-        let title = ViewModel.statusBarText(balance: 42, isLoading: false, claudePercent: nil)
+        let title = ViewModel.statusBarText(
+            balance: 42, isLoading: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil
+        )
         XCTAssertEqual(title, "⚡42")
     }
 
     func testClaudeOnly() {
-        let title = ViewModel.statusBarText(balance: nil, isLoading: false, claudePercent: 62)
-        XCTAssertEqual(title, "62%")
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: false,
+            claudeFiveHourPercent: 62, claudeSevenDayPercent: 8
+        )
+        XCTAssertEqual(title, "🕐62% · 📅8%")
     }
 
     func testLoadingWithNothingToShow() {
-        let title = ViewModel.statusBarText(balance: nil, isLoading: true, claudePercent: nil)
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: true,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil
+        )
         XCTAssertEqual(title, "⚡…")
     }
 
     func testNothingToShow() {
-        let title = ViewModel.statusBarText(balance: nil, isLoading: false, claudePercent: nil)
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil
+        )
         XCTAssertEqual(title, "⚡?")
     }
 
@@ -39,54 +54,105 @@ final class StatusBarTextTests: XCTestCase {
     /// without a Hyper key refreshes every few minutes, and a title that fell back to `⚡…`
     /// each time would blink their percentage away and back.
     func testLoadingKeepsAClaudePercentOnScreen() {
-        let title = ViewModel.statusBarText(balance: nil, isLoading: true, claudePercent: 62)
-        XCTAssertEqual(title, "62%")
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: true,
+            claudeFiveHourPercent: 62, claudeSevenDayPercent: nil
+        )
+        XCTAssertEqual(title, "🕐62%")
     }
 
     func testLoadingKeepsAStaleBalanceOnScreen() {
-        let title = ViewModel.statusBarText(balance: 42, isLoading: true, claudePercent: 62)
-        XCTAssertEqual(title, "⚡42 · 62%")
+        let title = ViewModel.statusBarText(
+            balance: 42, isLoading: true,
+            claudeFiveHourPercent: 62, claudeSevenDayPercent: 8
+        )
+        XCTAssertEqual(title, "⚡42 · 🕐62% · 📅8%")
     }
 
     func testZeroPercentIsShownRatherThanOmitted() {
-        let title = ViewModel.statusBarText(balance: 42, isLoading: false, claudePercent: 0)
-        XCTAssertEqual(title, "⚡42 · 0%")
-    }
-
-    // MARK: - Claude Headline
-
-    func testHeadlinePrefersTheActiveLimit() {
-        let usage = ClaudeUsage(
-            fiveHour: UsageWindow(utilization: 12),
-            sevenDay: nil,
-            sevenDayOpus: nil,
-            limits: [
-                Limit(percent: 12, isActive: false),
-                Limit(percent: 68, isActive: true)
-            ]
+        let title = ViewModel.statusBarText(
+            balance: 42, isLoading: false,
+            claudeFiveHourPercent: 0, claudeSevenDayPercent: 8
         )
-        XCTAssertEqual(ViewModel.claudeHeadline(for: usage)?.percent, 68)
+        XCTAssertEqual(title, "⚡42 · 📅8%")
     }
 
-    /// Below the thresholds the server flags no limit at all, and the 5-hour window
-    /// stands in — rounded, because the title has no room for a decimal.
-    func testHeadlineFallsBackToTheRoundedFiveHourWindow() {
+    func testBothClaudeWindowsZero() {
+        let title = ViewModel.statusBarText(
+            balance: 42, isLoading: false,
+            claudeFiveHourPercent: 0, claudeSevenDayPercent: 0
+        )
+        XCTAssertEqual(title, "⚡42")
+    }
+
+    func testFiveHourOnly() {
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: false,
+            claudeFiveHourPercent: 62, claudeSevenDayPercent: nil
+        )
+        XCTAssertEqual(title, "🕐62%")
+    }
+
+    func testSevenDayOnly() {
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: 8
+        )
+        XCTAssertEqual(title, "📅8%")
+    }
+
+    // MARK: - Claude Window Percentages
+
+    func testFiveHourPercentRounds() {
         let usage = ClaudeUsage(
             fiveHour: UsageWindow(utilization: 61.6),
-            sevenDay: UsageWindow(utilization: 4),
-            sevenDayOpus: nil,
-            limits: []
+            sevenDay: nil, sevenDayOpus: nil, limits: nil
         )
-        XCTAssertEqual(ViewModel.claudeHeadline(for: usage)?.percent, 62)
+        let vm = ViewModel()
+        vm.claudeUsage = usage
+        XCTAssertEqual(vm.claudeFiveHourPercent, 62)
+        XCTAssertNil(vm.claudeSevenDayPercent)
     }
 
-    func testHeadlineIsNilWithoutUsage() {
-        XCTAssertNil(ViewModel.claudeHeadline(for: nil))
+    func testSevenDayPercentRounds() {
+        let usage = ClaudeUsage(
+            fiveHour: nil,
+            sevenDay: UsageWindow(utilization: 4.4),
+            sevenDayOpus: nil, limits: nil
+        )
+        let vm = ViewModel()
+        vm.claudeUsage = usage
+        XCTAssertNil(vm.claudeFiveHourPercent)
+        XCTAssertEqual(vm.claudeSevenDayPercent, 4)
     }
 
-    /// The endpoint answers `{}` for an account that has never used the plan.
-    func testHeadlineIsNilForAnEmptyPayload() {
-        let usage = ClaudeUsage(fiveHour: nil, sevenDay: nil, sevenDayOpus: nil, limits: nil)
-        XCTAssertNil(ViewModel.claudeHeadline(for: usage))
+    func testSevenDayFallsBackToOpus() {
+        let usage = ClaudeUsage(
+            fiveHour: nil,
+            sevenDay: nil,
+            sevenDayOpus: UsageWindow(utilization: 33.5),
+            limits: nil
+        )
+        let vm = ViewModel()
+        vm.claudeUsage = usage
+        XCTAssertEqual(vm.claudeSevenDayPercent, 34)
+    }
+
+    func testSevenDayDoesNotFallBackToZeroOpus() {
+        let usage = ClaudeUsage(
+            fiveHour: nil,
+            sevenDay: nil,
+            sevenDayOpus: UsageWindow(utilization: 0),
+            limits: nil
+        )
+        let vm = ViewModel()
+        vm.claudeUsage = usage
+        XCTAssertNil(vm.claudeSevenDayPercent)
+    }
+
+    func testNilUsageYieldsNilPercents() {
+        let vm = ViewModel()
+        XCTAssertNil(vm.claudeFiveHourPercent)
+        XCTAssertNil(vm.claudeSevenDayPercent)
     }
 }

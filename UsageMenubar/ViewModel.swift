@@ -186,22 +186,30 @@ final class ViewModel: ObservableObject {
         balanceFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
-    /// The text to show in the menu bar: `⚡{balance} · {percent}%` with both services,
-    /// and just the half that is there when only one of them is — an unconfigured or
-    /// failing service drops out of the title rather than taking a slot to say nothing.
-    /// With neither, the bolt stands in alone: `⚡…` while the first fetch is in flight,
-    /// `⚡?` once it has come back empty-handed.
+    /// The text to show in the menu bar: `⚡{balance}` followed by Claude usage
+    /// windows, each prefixed with an emoji so they are distinguishable at a glance:
+    /// 🕐 for the 5-hour window, 📅 for the 7-day window. Windows that are absent or
+    /// at 0% are omitted; with neither, the bolt stands in alone: `⚡…` while the
+    /// first fetch is in flight, `⚡?` once it has come back empty-handed.
     ///
     /// Takes its values as parameters rather than reading the properties: `@Published`
     /// publishes in `willSet`, so a Combine subscriber that called back into the view
     /// model would see the *pre-change* value and render a title one update behind.
-    static func statusBarText(balance: Int?, isLoading: Bool, claudePercent: Int?) -> String {
+    static func statusBarText(
+        balance: Int?,
+        isLoading: Bool,
+        claudeFiveHourPercent: Int?,
+        claudeSevenDayPercent: Int?
+    ) -> String {
         var parts: [String] = []
         if let balance = balance {
             parts.append("⚡\(formatBalance(balance))")
         }
-        if let claudePercent = claudePercent {
-            parts.append("\(claudePercent)%")
+        if let fiveHour = claudeFiveHourPercent, fiveHour > 0 {
+            parts.append("🕐\(fiveHour)%")
+        }
+        if let sevenDay = claudeSevenDayPercent, sevenDay > 0 {
+            parts.append("📅\(sevenDay)%")
         }
         if parts.isEmpty {
             return isLoading ? "⚡…" : "⚡?"
@@ -214,7 +222,8 @@ final class ViewModel: ObservableObject {
         Self.statusBarText(
             balance: balance,
             isLoading: isLoading,
-            claudePercent: claudeStatusBarPercent
+            claudeFiveHourPercent: claudeFiveHourPercent,
+            claudeSevenDayPercent: claudeSevenDayPercent
         )
     }
 
@@ -393,27 +402,23 @@ final class ViewModel: ObservableObject {
         }
     }
 
-    /// The number Claude gets judged by: whichever limit the server itself flags as
-    /// binding, falling back to the 5-hour window when it flags none. `nil` when there
-    /// is no usage to summarize.
-    ///
-    /// Shared by the popover and the menu bar title so the two can never disagree about
-    /// which of the windows is the one that matters.
-    static func claudeHeadline(for usage: ClaudeUsage?) -> (percent: Int, resetsIn: String?)? {
-        guard let usage = usage else { return nil }
-        if let active = usage.activeLimit {
-            return (active.percent, active.resetsInFormatted)
-        }
-        if let fiveHour = usage.fiveHour {
-            return (Int(fiveHour.utilization.rounded()), fiveHour.resetsInFormatted)
-        }
-        return nil
+    /// The 5-hour window percentage for the menu bar title, or `nil` when absent.
+    var claudeFiveHourPercent: Int? {
+        guard let fiveHour = claudeUsage?.fiveHour else { return nil }
+        return Int(fiveHour.utilization.rounded())
     }
 
-    /// The Claude percentage for the menu bar title, or `nil` when Claude Code isn't
-    /// signed in on this machine — in which case the title is Hyper's alone.
-    var claudeStatusBarPercent: Int? {
-        Self.claudeHeadline(for: claudeUsage)?.percent
+    /// The 7-day window percentage for the menu bar title, or `nil` when absent.
+    /// Falls back to the 7-day Opus window when the regular 7-day is absent but Opus
+    /// has been used — on Max plans the Opus cap is the one that binds first.
+    var claudeSevenDayPercent: Int? {
+        if let sevenDay = claudeUsage?.sevenDay {
+            return Int(sevenDay.utilization.rounded())
+        }
+        if let opus = claudeUsage?.sevenDayOpus, opus.utilization > 0 {
+            return Int(opus.utilization.rounded())
+        }
+        return nil
     }
 
     /// Display label for the Claude plan, e.g. "Pro" or "Max".
