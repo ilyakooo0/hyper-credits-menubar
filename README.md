@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="UsageMenubar/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" width="128" height="128" alt="Usage Menubar app icon">
+</p>
+
 # UsageMenubar
 
 A macOS menu bar application that displays your [Hyper (Charm)](https://hyper.charm.land) credit balance — and, if you use the Claude Code CLI, your Claude subscription limits alongside it.

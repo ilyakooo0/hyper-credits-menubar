@@ -42,8 +42,6 @@ targets:
           # so they must not also be compiled in as resources.
           - "Info.plist"
           - "*.entitlements"
-    resources:
-      - UsageMenubar/Assets.xcassets
     info:
       path: UsageMenubar/Info.plist
       properties:
@@ -68,6 +66,7 @@ targets:
         # (unsigned builds can't carry entitlements).
         CODE_SIGN_ENTITLEMENTS: UsageMenubar/UsageMenubar.entitlements
         ENABLE_HARDENED_RUNTIME: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
