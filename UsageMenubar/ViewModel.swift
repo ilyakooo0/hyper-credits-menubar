@@ -7,7 +7,7 @@ import UserNotifications
 /// Posted when the user changes the refresh interval, so the app delegate can
 /// restart its timer with the new period.
 extension Notification.Name {
-    static let refreshIntervalDidChange = Notification.Name("com.ilyakooo0.usage-menubar.refreshIntervalDidChange")
+    static let refreshIntervalDidChange = Notification.Name("soy.iko.usage-menubar.refreshIntervalDidChange")
 }
 
 /// The direction a metric has moved over the most recent history points.

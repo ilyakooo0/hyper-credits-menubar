@@ -82,7 +82,7 @@ struct KeychainStore {
 
 /// Simple wrapper around the macOS Keychain for storing the Hyper API key.
 enum KeychainHelper {
-    private static let service = "com.ilyakooo0.usage-menubar"
+    private static let service = "soy.iko.usage-menubar"
     private static let account = "hyper-api-key"
 
     private static let store = KeychainStore(service: service, account: account)
@@ -112,7 +112,7 @@ enum KeychainHelper {
 /// Uses the same keychain service as the Hyper key but a different account, so the
 /// two keys coexist without clobbering each other.
 enum ZaiKeychainHelper {
-    private static let service = "com.ilyakooo0.usage-menubar"
+    private static let service = "soy.iko.usage-menubar"
     private static let account = "zai-api-key"
 
     private static let store = KeychainStore(service: service, account: account)

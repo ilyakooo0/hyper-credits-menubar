@@ -6,7 +6,7 @@ name: UsageMenubar
 options:
   # Reverse-DNS prefix xcodegen uses when it needs to synthesize a bundle id.
   # The app target pins its own id explicitly below, so this is just a default.
-  bundleIdPrefix: com.ilyakooo0
+  bundleIdPrefix: soy.iko
   # Oldest macOS we support. SMAppService (launch at login) requires 13.0+;
   # we target 14.0 (Sonoma). Keep in sync with MACOSX_DEPLOYMENT_TARGET below.
   deploymentTarget:
@@ -47,7 +47,7 @@ targets:
       properties:
         CFBundleName: UsageMenubar
         CFBundleDisplayName: Usage Menubar
-        CFBundleIdentifier: com.ilyakooo0.usage-menubar
+        CFBundleIdentifier: soy.iko.usage-menubar
         # Overwritten by CI — see the note on MARKETING_VERSION above.
         CFBundleVersion: "1"
         CFBundleShortVersionString: "1.0.0"
@@ -57,7 +57,7 @@ targets:
         NSHighResolutionCapable: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ilyakooo0.usage-menubar
+        PRODUCT_BUNDLE_IDENTIFIER: soy.iko.usage-menubar
         PRODUCT_NAME: UsageMenubar
         INFOPLIST_FILE: UsageMenubar/Info.plist
         # Grants the outgoing-network-connection entitlement needed to reach
@@ -84,7 +84,7 @@ targets:
       - target: UsageMenubar
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ilyakooo0.usage-menubar.tests
+        PRODUCT_BUNDLE_IDENTIFIER: soy.iko.usage-menubar.tests
         PRODUCT_NAME: UsageMenubarTests
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/UsageMenubar.app/Contents/MacOS/UsageMenubar"
