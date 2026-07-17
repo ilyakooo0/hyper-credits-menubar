@@ -106,3 +106,31 @@ enum KeychainHelper {
         store.delete()
     }
 }
+
+/// Wrapper around the macOS Keychain for storing the z.ai API key.
+///
+/// Uses the same keychain service as the Hyper key but a different account, so the
+/// two keys coexist without clobbering each other.
+enum ZaiKeychainHelper {
+    private static let service = "com.ilyakooo0.usage-menubar"
+    private static let account = "zai-api-key"
+
+    private static let store = KeychainStore(service: service, account: account)
+
+    /// Saves the given z.ai API key to the Keychain, overwriting any existing entry.
+    @discardableResult
+    static func save(_ key: String) -> Bool {
+        store.save(key)
+    }
+
+    /// Retrieves the stored z.ai API key, or `nil` if none exists.
+    static func load() -> String? {
+        store.load()
+    }
+
+    /// Deletes the stored z.ai API key if it exists.
+    @discardableResult
+    static func delete() -> Bool {
+        store.delete()
+    }
+}

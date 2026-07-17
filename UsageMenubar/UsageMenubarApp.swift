@@ -46,8 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: MenuView(viewModel: viewModel))
 
-        // Observe published changes (balance + isLoading + Claude usage) to update the
-        // menu bar title. CombineLatest fires when any of them changes.
+        // Observe published changes (balance + isLoading + Claude usage + z.ai usage) to
+        // update the menu bar title. CombineLatest fires when any of them changes.
         //
         // The title is built from the values the publisher hands us, not by reading the
         // view model back: `@Published` emits in `willSet`, so the property still holds
@@ -56,23 +56,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Delivery is hopped through `DispatchQueue.main` rather than `RunLoop.main`,
         // whose Combine scheduler only runs in the default run loop mode — the title
         // would freeze while a menu or a scroll was tracking.
-        statusTextCancellable = Publishers.CombineLatest3(
+        statusTextCancellable = Publishers.CombineLatest4(
             viewModel.$balance,
             viewModel.$isLoading,
-            viewModel.$claudeUsage
+            viewModel.$claudeUsage,
+            viewModel.$zaiUsage
         )
-        .map { balance, isLoading, claudeUsage in
+        .map { balance, isLoading, claudeUsage, zaiUsage in
             let fiveHour = claudeUsage?.fiveHour
                 .map { Int($0.utilization.rounded()) }
             let sevenDay = claudeUsage?.sevenDay
                 .map { Int($0.utilization.rounded()) }
                 ?? claudeUsage?.sevenDayOpus
                     .map { Int($0.utilization.rounded()) }
+            let zaiFiveHour = zaiUsage?.fiveHourPercent
             return ViewModel.statusBarText(
                 balance: balance,
                 isLoading: isLoading,
                 claudeFiveHourPercent: fiveHour,
-                claudeSevenDayPercent: sevenDay
+                claudeSevenDayPercent: sevenDay,
+                zaiFiveHourPercent: zaiFiveHour
             )
         }
         .removeDuplicates()

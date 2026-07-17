@@ -8,6 +8,7 @@ struct MenuView: View {
     @State private var isHoveringBalance = false
 
     private static let websiteURL = URL(string: "https://hyper.charm.land")!
+    private static let zaiKeyURL = URL(string: "https://z.ai/manage-apikey/coding-plan/personal/my-plan")!
 
     // MARK: - Type Scale
 
@@ -32,6 +33,10 @@ struct MenuView: View {
                 serviceBreak
                 claude
             }
+            if showsZai {
+                serviceBreak
+                zai
+            }
             hairline
             settings
             hairline
@@ -52,6 +57,8 @@ struct MenuView: View {
         .animation(.easeInOut(duration: 0.3), value: historyValues.count)
         .animation(.easeInOut(duration: 0.25), value: viewModel.claudeUsage)
         .animation(.easeInOut(duration: 0.2), value: viewModel.claudeError)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.zaiUsage)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.zaiError)
     }
 
     /// A section rule light enough to read as a pause rather than a border.
@@ -311,6 +318,105 @@ struct MenuView: View {
         return .green
     }
 
+    // MARK: - z.ai
+
+    /// Whether there is anything to say about z.ai. Nothing at all when no API key has
+    /// been entered — the section doesn't appear, and no error is shown for a service
+    /// the user may simply not use.
+    private var showsZai: Bool {
+        if viewModel.zaiError != nil { return true }
+        if let usage = viewModel.zaiUsage { return !usage.isEmpty }
+        return false
+    }
+
+    /// z.ai Coding Plan's quota limits. Same visual structure as the Claude section:
+    /// the 5-hour percentage leads as a subhero, the weekly quota sits underneath.
+    private var zai: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                sectionHeader("z.ai Coding", systemImage: "bolt.horizontal")
+
+                Spacer(minLength: 0)
+
+                if let plan = viewModel.zaiPlanLabel {
+                    Text(plan)
+                        .font(Self.captionFont)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            if let usage = viewModel.zaiUsage, !usage.isEmpty {
+                zaiUsageDetail(usage)
+            }
+
+            if let error = viewModel.zaiError {
+                errorRow(error)
+            }
+        }
+    }
+
+    private func zaiUsageDetail(_ usage: ZaiUsageReport) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // The 5-hour window leads as the hero number, same as Claude's.
+            if let fiveHour = usage.fiveHourPercent {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("🤖 \(fiveHour)%")
+                        .font(Self.subheroFont)
+                        .foregroundColor(Self.usageColor(fiveHour))
+                        .contentTransition(.opacity)
+
+                    Spacer(minLength: 0)
+
+                    if let resets = usage.fiveHourResetsAt {
+                        Text("resets in \(Self.zaiResetsIn(from: resets))")
+                            .font(Self.footnoteFont)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 9) {
+                if let weekly = usage.weeklyPercent {
+                    zaiWindow("Weekly", percent: weekly, resetsAt: usage.weeklyResetsAt)
+                }
+            }
+        }
+    }
+
+    /// One window row for z.ai: label, percentage, and a hairline bar.
+    private func zaiWindow(_ label: String, percent: Int, resetsAt: Date?) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(Self.captionFont)
+                    .foregroundColor(.secondary)
+
+                Spacer(minLength: 0)
+
+                Text("\(percent)%")
+                    .font(Self.captionFont.monospacedDigit())
+                    .foregroundColor(Self.usageColor(percent))
+            }
+
+            UsageBar(percent: percent, color: Self.usageColor(percent))
+        }
+    }
+
+    /// Formats the time until a z.ai window resets, e.g. "3h 20m".
+    private static func zaiResetsIn(from date: Date) -> String {
+        let interval = date.timeIntervalSince(Date())
+        guard interval > 0 else { return "soon" }
+
+        let seconds = Int(interval.rounded())
+        let days = seconds / 86_400
+        let hours = (seconds % 86_400) / 3_600
+        let minutes = (seconds % 3_600) / 60
+
+        if days > 0 { return "\(days)d \(hours)h" }
+        if hours > 0 { return "\(hours)h \(minutes)m" }
+        return "\(minutes)m"
+    }
+
     // MARK: - Settings
 
     private var settings: some View {
@@ -341,6 +447,37 @@ struct MenuView: View {
 
                     Button("Save") {
                         viewModel.saveAPIKey()
+                    }
+                }
+                .controlSize(.small)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    sectionHeader("z.ai API Key", systemImage: "bolt.horizontal")
+
+                    Spacer(minLength: 0)
+
+                    // The confirmation takes the link's place rather than adding a row
+                    // of its own, so saving never resizes the popover.
+                    if viewModel.savedConfirmation {
+                        Text("✓ Saved")
+                            .font(Self.captionFont)
+                            .foregroundColor(.green)
+                            .transition(.opacity)
+                    } else {
+                        Link("Get key →", destination: Self.zaiKeyURL)
+                            .font(Self.captionFont)
+                            .transition(.opacity)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    SecureField("your z.ai key", text: $viewModel.zaiAPIKeyInput)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button("Save") {
+                        viewModel.saveZaiAPIKey()
                     }
                 }
                 .controlSize(.small)

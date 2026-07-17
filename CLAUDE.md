@@ -2,18 +2,21 @@
 
 ## Architecture
 macOS menu bar app (SwiftUI, macOS 14+) showing Hyper (Charm) credit balance, plus
-Claude Code's Pro/Max usage limits when the CLI is signed in on the machine.
+Claude Code's Pro/Max usage limits when the CLI is signed in on the machine, plus
+z.ai Coding Plan usage limits when an API key is entered in settings.
 - `UsageMenubarApp.swift` — @main App, NSStatusBar, timer, sleep/wake, popover
-- `ViewModel.swift` — Observable state: balance, Claude usage, refresh, notifications, history
-- `MenuView.swift` — SwiftUI popover view (balance, sparkline, Claude limits, settings)
+- `ViewModel.swift` — Observable state: balance, Claude usage, z.ai usage, refresh, notifications, history
+- `MenuView.swift` — SwiftUI popover view (balance, sparkline, Claude limits, z.ai limits, settings)
 - `CreditsChecker.swift` — API client for `GET https://hyper.charm.land/v1/credits`
 - `ClaudeUsageClient.swift` — read-only Claude OAuth client + models for `GET https://api.anthropic.com/api/oauth/usage`
-- `KeychainHelper.swift` — Keychain wrapper (KeychainStore + KeychainHelper)
+- `ZaiUsageClient.swift` — API client for z.ai coding plan usage (`GET https://api.z.ai/api/monitor/usage/quota/limit` + `GET https://api.z.ai/api/biz/subscription/list`)
+- `KeychainHelper.swift` — Keychain wrapper (KeychainStore + KeychainHelper + ZaiKeychainHelper)
 - `VersionFormatter.swift` — Version string formatting
 
-The status bar title stays `⚡{balance}` (Hyper only); Claude usage lives in the popover.
-The two fetches are independent — `ViewModel.refresh()` runs them with `async let`, and
-either can fail or be unconfigured without touching the other.
+The status bar title shows `⚡{balance}` (Hyper), `🕐{percent}%` (Claude 5-hour),
+`📅{percent}%` (Claude 7-day), and `🤖{percent}%` (z.ai 5-hour) — each omitted when
+absent or at 0%. The three fetches are independent — `ViewModel.refresh()` runs them
+with `async let`, and any can fail or be unconfigured without touching the others.
 
 ## Claude credentials (strictly read-only)
 `ClaudeUsageClient` reads the credentials **Claude Code owns**: its `Claude Code-credentials`

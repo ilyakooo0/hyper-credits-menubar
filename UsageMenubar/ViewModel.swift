@@ -80,6 +80,19 @@ final class ViewModel: ObservableObject {
     /// The Claude plan the credentials belong to — `"pro"`, `"max"`, …
     @Published var claudePlan: String?
 
+    /// z.ai Coding Plan usage. `nil` when no z.ai API key has been entered, in which
+    /// case the popover leaves the section out entirely.
+    @Published var zaiUsage: ZaiUsageReport?
+
+    /// A human-readable error message from the z.ai fetch. Independent of
+    /// `errorMessage` and `claudeError`: the three services fail separately.
+    @Published var zaiError: String?
+
+    /// The z.ai API key draft bound to the text field. Two-way bound to the
+    /// `SecureField`, so it changes on every keystroke — never fetch with it, use
+    /// `activeZaiAPIKey`.
+    @Published var zaiAPIKeyInput: String = ""
+
     /// The API key draft bound to the text field. Two-way bound to the `SecureField`,
     /// so it changes on every keystroke — never fetch with it, use `activeAPIKey`.
     @Published var apiKeyInput: String = ""
@@ -125,8 +138,13 @@ final class ViewModel: ObservableObject {
     /// last-updated time and history out from under the user.
     private var activeAPIKey: String
 
+    /// The z.ai key requests actually go out with: what is in the Keychain, not what
+    /// is currently in the text field. Same rationale as `activeAPIKey`.
+    private var activeZaiAPIKey: String
+
     private let checker: CreditsChecking
     private let claudeChecker: ClaudeUsageChecking
+    private let zaiChecker: ZaiUsageChecking
     private let defaults: UserDefaults
 
     /// The currently in-flight refresh task, if any. Used to cancel
@@ -150,14 +168,19 @@ final class ViewModel: ObservableObject {
     init(
         checker: CreditsChecking = CreditsChecker(),
         claudeChecker: ClaudeUsageChecking = ClaudeUsageClient(),
+        zaiChecker: ZaiUsageChecking = ZaiUsageClient(),
         defaults: UserDefaults = .standard
     ) {
         self.checker = checker
         self.claudeChecker = claudeChecker
+        self.zaiChecker = zaiChecker
         self.defaults = defaults
         let storedKey = KeychainHelper.load() ?? ""
         apiKeyInput = storedKey
         activeAPIKey = storedKey
+        let storedZaiKey = ZaiKeychainHelper.load() ?? ""
+        zaiAPIKeyInput = storedZaiKey
+        activeZaiAPIKey = storedZaiKey
         // Assigning in init doesn't fire didSet, so this load doesn't re-post
         // the change notification or write back to defaults.
         refreshIntervalMinutes = RefreshInterval.stored(in: defaults)
@@ -188,9 +211,10 @@ final class ViewModel: ObservableObject {
 
     /// The text to show in the menu bar: `⚡{balance}` followed by Claude usage
     /// windows, each prefixed with an emoji so they are distinguishable at a glance:
-    /// 🕐 for the 5-hour window, 📅 for the 7-day window. Windows that are absent or
-    /// at 0% are omitted; with neither, the bolt stands in alone: `⚡…` while the
-    /// first fetch is in flight, `⚡?` once it has come back empty-handed.
+    /// 🕐 for the 5-hour window, 📅 for the 7-day window, 🤖 for the z.ai 5-hour
+    /// window. Windows that are absent or at 0% are omitted; with neither, the bolt
+    /// stands in alone: `⚡…` while the first fetch is in flight, `⚡?` once it has
+    /// come back empty-handed.
     ///
     /// Takes its values as parameters rather than reading the properties: `@Published`
     /// publishes in `willSet`, so a Combine subscriber that called back into the view
@@ -199,7 +223,8 @@ final class ViewModel: ObservableObject {
         balance: Int?,
         isLoading: Bool,
         claudeFiveHourPercent: Int?,
-        claudeSevenDayPercent: Int?
+        claudeSevenDayPercent: Int?,
+        zaiFiveHourPercent: Int?
     ) -> String {
         var parts: [String] = []
         if let balance = balance {
@@ -210,6 +235,9 @@ final class ViewModel: ObservableObject {
         }
         if let sevenDay = claudeSevenDayPercent, sevenDay > 0 {
             parts.append("📅\(sevenDay)%")
+        }
+        if let zaiFiveHour = zaiFiveHourPercent, zaiFiveHour > 0 {
+            parts.append("🤖\(zaiFiveHour)%")
         }
         if parts.isEmpty {
             return isLoading ? "⚡…" : "⚡?"
@@ -223,7 +251,8 @@ final class ViewModel: ObservableObject {
             balance: balance,
             isLoading: isLoading,
             claudeFiveHourPercent: claudeFiveHourPercent,
-            claudeSevenDayPercent: claudeSevenDayPercent
+            claudeSevenDayPercent: claudeSevenDayPercent,
+            zaiFiveHourPercent: zaiFiveHourPercent
         )
     }
 
@@ -279,19 +308,20 @@ final class ViewModel: ObservableObject {
 
     // MARK: - Refresh
 
-    /// Refreshes the Hyper balance and the Claude usage, both at once.
+    /// Refreshes the Hyper balance, the Claude usage, and the z.ai usage, all at once.
     ///
-    /// The two are independent: either can fail, or not be configured at all, without
-    /// touching the other. Cancels any previously in-flight refresh to prevent races.
+    /// The three are independent: any can fail, or not be configured at all, without
+    /// touching the others. Cancels any previously in-flight refresh to prevent races.
     func refresh() {
         refreshTask?.cancel()
 
         // Deliberately the saved key rather than `apiKeyInput`: see `activeAPIKey`.
         let key = activeAPIKey
+        let zaiKey = activeZaiAPIKey
         if key.isEmpty {
             // Nothing to fetch, and nothing worth keeping: the balance, its history and
-            // any error all belonged to a key that is no longer there. Claude is left
-            // alone — it doesn't depend on the Hyper key.
+            // any error all belonged to a key that is no longer there. Claude and z.ai
+            // are left alone — they don't depend on the Hyper key.
             balance = nil
             errorMessage = nil
             lastUpdated = nil
@@ -302,22 +332,25 @@ final class ViewModel: ObservableObject {
             // Check cancellation before setting isLoading — a previous
             // refresh() may have cancelled us and already set isLoading = false.
             guard !Task.isCancelled else { return }
-            // Loading state covers both fetches: the popover's loading view depends
-            // on it, and Claude usage is fetched even when there's no Hyper key.
+            // Loading state covers all fetches: the popover's loading view depends
+            // on it, and Claude/z.ai usage is fetched even when there's no Hyper key.
             isLoading = true
             // Don't clear the errors here — keep showing the last one
             // until we have a successful result.
 
-            // Both requests go out at once; neither waits on the other.
+            // All three requests go out at once; none waits on the others.
             async let balanceOutcome = fetchBalance(key: key)
             async let claudeOutcome = fetchClaudeUsage()
+            async let zaiOutcome = fetchZaiUsage(key: zaiKey)
 
             let balanceResult = await balanceOutcome
             let claudeResult = await claudeOutcome
+            let zaiResult = await zaiOutcome
             guard !Task.isCancelled else { return }
 
             applyBalance(balanceResult)
             applyClaude(claudeResult)
+            applyZai(zaiResult)
             isLoading = false
         }
     }
@@ -436,6 +469,70 @@ final class ViewModel: ObservableObject {
         }
     }
 
+    // MARK: - z.ai Usage
+
+    /// What a z.ai fetch produced. Missing API key is deliberately not a failure:
+    /// plenty of people don't use z.ai, and an error telling them so would be noise.
+    private enum ZaiOutcome {
+        case notConfigured
+        case usage(ZaiUsageReport)
+        case failure(String)
+    }
+
+    private func fetchZaiUsage(key: String) async -> ZaiOutcome {
+        guard !key.isEmpty else { return .notConfigured }
+        do {
+            return .usage(try await zaiChecker.fetchUsage(apiKey: key))
+        } catch ZaiUsageError.noAPIKey {
+            return .notConfigured
+        } catch {
+            return .failure(error.localizedDescription)
+        }
+    }
+
+    private func applyZai(_ outcome: ZaiOutcome) {
+        switch outcome {
+        case .notConfigured:
+            zaiUsage = nil
+            zaiError = nil
+
+        case .usage(let report):
+            zaiUsage = report
+            zaiError = nil
+
+        case .failure(let message):
+            // As with the balance and Claude: keep the last good numbers on screen
+            // and say what went wrong, rather than blanking the section on a
+            // transient failure.
+            zaiError = message
+        }
+    }
+
+    /// The 5-hour window percentage for the menu bar title, or `nil` when absent.
+    var zaiFiveHourPercent: Int? {
+        zaiUsage?.fiveHourPercent
+    }
+
+    /// The weekly window percentage for the popover, or `nil` when absent.
+    var zaiWeeklyPercent: Int? {
+        zaiUsage?.weeklyPercent
+    }
+
+    /// Display label for the z.ai plan, e.g. "Lite", "Pro", or "Max".
+    /// Falls back to the raw `planLevel` string if it doesn't match a known tier.
+    var zaiPlanLabel: String? {
+        guard let level = zaiUsage?.planLevel?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !level.isEmpty else { return nil }
+
+        // The subscription endpoint returns a product name like "GLM Coding Max";
+        // extract the tier from it. The quota endpoint returns just the tier.
+        let lowered = level.lowercased()
+        if lowered.contains("max") { return "Max" }
+        if lowered.contains("pro") { return "Pro" }
+        if lowered.contains("lite") { return "Lite" }
+        return level.capitalized
+    }
+
     // MARK: - Clipboard
 
     /// Copies the current balance to the clipboard as plain digits (no grouping
@@ -528,6 +625,52 @@ final class ViewModel: ObservableObject {
         // Show "✓ Saved" confirmation, auto-reset after 2 seconds.
         // Cancel any previous reset so rapid Save clicks don't hide the
         // confirmation prematurely.
+        savedConfirmation = true
+        savedResetTask?.cancel()
+        savedResetTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled else { return }
+            savedConfirmation = false
+        }
+    }
+
+    // MARK: - z.ai API Key
+
+    /// Saves the current `zaiAPIKeyInput` to the Keychain and triggers a refresh.
+    /// Shows "✓ Saved" on success, or an error message if the keychain rejected the key.
+    func saveZaiAPIKey() {
+        let key = zaiAPIKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if key.isEmpty {
+            let deleted = ZaiKeychainHelper.delete()
+            guard deleted else {
+                zaiError = "Could not delete z.ai API key from Keychain. It may be locked."
+                return
+            }
+            zaiAPIKeyInput = ""
+            activeZaiAPIKey = ""
+            // refresh() with an empty key clears zai usage and error, and
+            // cancels any in-flight task from the previous key.
+            refresh()
+        } else {
+            let saved = ZaiKeychainHelper.save(key)
+            guard saved else {
+                zaiError = "Could not save z.ai API key to Keychain. It may be locked."
+                return
+            }
+            // A different key is a different account, so everything derived from the
+            // old one has to go.
+            if key != activeZaiAPIKey {
+                zaiUsage = nil
+                zaiError = nil
+            }
+            // Show the trimmed key that was actually stored.
+            zaiAPIKeyInput = key
+            activeZaiAPIKey = key
+            refresh()
+        }
+
+        // Reuse the same "✓ Saved" confirmation — the user sees one per save action,
+        // regardless of which key it was for.
         savedConfirmation = true
         savedResetTask?.cancel()
         savedResetTask = Task { @MainActor in
