@@ -242,7 +242,7 @@ final class ViewModel: ObservableObject {
     /// windows are separated by a space. An unconfigured service produces no
     /// segment — no placeholder, no icon.
     ///
-    /// Example: `⚡42 · 🕐62% 📅8% · 🤖12% 📆3%`
+    /// Example: `⚡42 · 🕐62% 📅8% · 🕑12% 📆3%`
     ///
     /// Takes its values as parameters rather than reading the properties: `@Published`
     /// publishes in `willSet`, so a Combine subscriber that called back into the view
@@ -278,7 +278,7 @@ final class ViewModel: ObservableObject {
         // z.ai — windows joined by space within the segment
         var zaiWindows: [String] = []
         if let zaiFiveHour = zaiFiveHourPercent, zaiFiveHour > 0 {
-            zaiWindows.append("🤖\(zaiFiveHour)%")
+            zaiWindows.append("🕑\(zaiFiveHour)%")
         }
         if let zaiWeekly = zaiWeeklyPercent, zaiWeekly > 0 {
             zaiWindows.append("📆\(zaiWeekly)%")

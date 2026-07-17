@@ -379,7 +379,7 @@ struct MenuView: View {
                 VStack(spacing: 8) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         headlineNumber(
-                            text: "🤖 \(fiveHour)%",
+                            text: "🕑 \(fiveHour)%",
                             color: Self.usageColor(fiveHour),
                             trend: viewModel.zaiTrend,
                             copiedConfirmation: viewModel.copiedZaiConfirmation,
