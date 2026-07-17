@@ -267,10 +267,10 @@ final class ViewModel: ObservableObject {
 
         // Claude — provider emoji + bare percentages
         var claudeWindows: [String] = []
-        if let fiveHour = claudeFiveHourPercent, fiveHour > 0 {
+        if let fiveHour = claudeFiveHourPercent {
             claudeWindows.append("\(fiveHour)%")
         }
-        if let sevenDay = claudeSevenDayPercent, sevenDay > 0 {
+        if let sevenDay = claudeSevenDayPercent {
             claudeWindows.append("\(sevenDay)%")
         }
         if !claudeWindows.isEmpty {
@@ -279,10 +279,10 @@ final class ViewModel: ObservableObject {
 
         // z.ai — provider emoji + bare percentages
         var zaiWindows: [String] = []
-        if let zaiFiveHour = zaiFiveHourPercent, zaiFiveHour > 0 {
+        if let zaiFiveHour = zaiFiveHourPercent {
             zaiWindows.append("\(zaiFiveHour)%")
         }
-        if let zaiWeekly = zaiWeeklyPercent, zaiWeekly > 0 {
+        if let zaiWeekly = zaiWeeklyPercent {
             zaiWindows.append("\(zaiWeekly)%")
         }
         if !zaiWindows.isEmpty {
