@@ -93,6 +93,11 @@ final class ViewModel: ObservableObject {
     /// `activeZaiAPIKey`.
     @Published var zaiAPIKeyInput: String = ""
 
+    /// Whether Hyper is configured — i.e. there is an API key in the Keychain.
+    /// Drives whether the `⚡` segment appears in the menu bar at all: an
+    /// unconfigured service should not take up space in the title.
+    @Published private(set) var hyperConfigured = false
+
     /// The API key draft bound to the text field. Two-way bound to the `SecureField`,
     /// so it changes on every keystroke — never fetch with it, use `activeAPIKey`.
     @Published var apiKeyInput: String = ""
@@ -178,6 +183,7 @@ final class ViewModel: ObservableObject {
         let storedKey = KeychainHelper.load() ?? ""
         apiKeyInput = storedKey
         activeAPIKey = storedKey
+        hyperConfigured = !storedKey.isEmpty
         let storedZaiKey = ZaiKeychainHelper.load() ?? ""
         zaiAPIKeyInput = storedZaiKey
         activeZaiAPIKey = storedZaiKey
@@ -209,12 +215,11 @@ final class ViewModel: ObservableObject {
         balanceFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
-    /// The text to show in the menu bar: `⚡{balance}` followed by Claude usage
-    /// windows, each prefixed with an emoji so they are distinguishable at a glance:
-    /// 🕐 for the 5-hour window, 📅 for the 7-day window, 🤖 for the z.ai 5-hour
-    /// window. Windows that are absent or at 0% are omitted; with neither, the bolt
-    /// stands in alone: `⚡…` while the first fetch is in flight, `⚡?` once it has
-    /// come back empty-handed.
+    /// The text to show in the menu bar: `⚡{balance}` (Hyper), `🕐{percent}%` (Claude
+    /// 5-hour), `📅{percent}%` (Claude 7-day), `🤖{percent}%` (z.ai 5-hour), and
+    /// `📆{percent}%` (z.ai weekly) — each omitted when absent or at 0%, and entirely
+    /// absent when the service is not configured. An unconfigured service produces no
+    /// placeholder in the menu bar.
     ///
     /// Takes its values as parameters rather than reading the properties: `@Published`
     /// publishes in `willSet`, so a Combine subscriber that called back into the view
@@ -222,12 +227,14 @@ final class ViewModel: ObservableObject {
     static func statusBarText(
         balance: Int?,
         isLoading: Bool,
+        hyperConfigured: Bool,
         claudeFiveHourPercent: Int?,
         claudeSevenDayPercent: Int?,
-        zaiFiveHourPercent: Int?
+        zaiFiveHourPercent: Int?,
+        zaiWeeklyPercent: Int?
     ) -> String {
         var parts: [String] = []
-        if let balance = balance {
+        if hyperConfigured, let balance = balance {
             parts.append("⚡\(formatBalance(balance))")
         }
         if let fiveHour = claudeFiveHourPercent, fiveHour > 0 {
@@ -239,8 +246,13 @@ final class ViewModel: ObservableObject {
         if let zaiFiveHour = zaiFiveHourPercent, zaiFiveHour > 0 {
             parts.append("🤖\(zaiFiveHour)%")
         }
+        if let zaiWeekly = zaiWeeklyPercent, zaiWeekly > 0 {
+            parts.append("📆\(zaiWeekly)%")
+        }
         if parts.isEmpty {
-            return isLoading ? "⚡…" : "⚡?"
+            // No service is configured or has anything to show. While loading,
+            // show an ellipsis; otherwise the title is empty.
+            return isLoading ? "…" : ""
         }
         return parts.joined(separator: " · ")
     }
@@ -250,9 +262,11 @@ final class ViewModel: ObservableObject {
         Self.statusBarText(
             balance: balance,
             isLoading: isLoading,
+            hyperConfigured: hyperConfigured,
             claudeFiveHourPercent: claudeFiveHourPercent,
             claudeSevenDayPercent: claudeSevenDayPercent,
-            zaiFiveHourPercent: zaiFiveHourPercent
+            zaiFiveHourPercent: zaiFiveHourPercent,
+            zaiWeeklyPercent: zaiWeeklyPercent
         )
     }
 
@@ -596,6 +610,7 @@ final class ViewModel: ObservableObject {
             }
             apiKeyInput = ""
             activeAPIKey = ""
+            hyperConfigured = false
             // refresh() with an empty key clears balance, error, history, and
             // cancels any in-flight task from the previous key.
             refresh()
@@ -619,6 +634,7 @@ final class ViewModel: ObservableObject {
             // Show the trimmed key that was actually stored.
             apiKeyInput = key
             activeAPIKey = key
+            hyperConfigured = true
             refresh()
         }
 

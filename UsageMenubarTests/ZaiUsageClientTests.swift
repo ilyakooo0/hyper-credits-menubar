@@ -22,6 +22,18 @@ final class ZaiUsageClientTests: XCTestCase {
         return ZaiUsageClient(session: URLSession(configuration: config), retryBaseDelay: retryBaseDelay)
     }
 
+    /// Enqueues quota and subscription responses matched to their URL paths, so the
+    /// order of arrival doesn't matter — each endpoint gets its own response.
+    private func enqueueQuotaAndSubscription(
+        quotaStatus: Int = 200,
+        quotaJSON: Data,
+        subscriptionStatus: Int = 200,
+        subscriptionJSON: Data
+    ) {
+        StubURLProtocol.enqueue(.status(quotaStatus, quotaJSON), forURLPath: "/api/monitor/usage/quota/limit")
+        StubURLProtocol.enqueue(.status(subscriptionStatus, subscriptionJSON), forURLPath: "/api/biz/subscription/list")
+    }
+
     // MARK: - Decoding
 
     func testDecodeQuotaResponse() throws {
@@ -78,21 +90,6 @@ final class ZaiUsageClientTests: XCTestCase {
 
     // MARK: - Fetch
 
-    /// Helper: enqueues a quota response and a subscription response. The two endpoints
-    /// are fetched concurrently, so the order they're enqueued in is the order they'll
-    /// be dequeued — but which request gets which response depends on which arrives first
-    /// at the stub. Since the stub dequeues in FIFO order, we enqueue quota first (it's
-    /// the one whose data matters), then subscription.
-    private func enqueueQuotaAndSubscription(
-        quotaStatus: Int = 200,
-        quotaJSON: Data,
-        subscriptionStatus: Int = 200,
-        subscriptionJSON: Data
-    ) {
-        StubURLProtocol.enqueue(.status(quotaStatus, quotaJSON))
-        StubURLProtocol.enqueue(.status(subscriptionStatus, subscriptionJSON))
-    }
-
     func testFetchUsageSuccess() async throws {
         let quotaJSON = """
         {"code":200,"msg":"Operation successful","success":true,"data":{"limits":[
@@ -130,12 +127,11 @@ final class ZaiUsageClientTests: XCTestCase {
     }
 
     func testFetchUsageInvalidKey() async {
-        // Both endpoints will 401 — the quota endpoint's 401 is what surfaces.
         let errorJSON = """
         {"code":401,"msg":"token expired or incorrect","success":false}
         """.data(using: .utf8)!
-        StubURLProtocol.enqueue(.status(401, errorJSON))
-        StubURLProtocol.enqueue(.status(401, errorJSON))
+        StubURLProtocol.enqueue(.status(401, errorJSON), forURLPath: "/api/monitor/usage/quota/limit")
+        StubURLProtocol.enqueue(.status(401, errorJSON), forURLPath: "/api/biz/subscription/list")
 
         let client = makeStubbedClient()
         do {
@@ -160,11 +156,10 @@ final class ZaiUsageClientTests: XCTestCase {
         {"code":200,"data":[],"success":true}
         """.data(using: .utf8)!
 
-        // Quota: 500 then 200 (retry). Subscription: 200 (first try).
-        // The order is: quota(500), subscription(200), quota(200 on retry).
-        StubURLProtocol.enqueue(.status(500, Data()))
-        StubURLProtocol.enqueue(.status(200, subscriptionJSON))
-        StubURLProtocol.enqueue(.status(200, quotaJSON))
+        // Subscription succeeds on first try. Quota fails with 500, then succeeds.
+        StubURLProtocol.enqueue(.status(200, subscriptionJSON), forURLPath: "/api/biz/subscription/list")
+        StubURLProtocol.enqueue(.status(500, Data()), forURLPath: "/api/monitor/usage/quota/limit")
+        StubURLProtocol.enqueue(.status(200, quotaJSON), forURLPath: "/api/monitor/usage/quota/limit")
 
         let client = makeStubbedClient()
         let report = try await client.fetchUsage(apiKey: "test-key")
@@ -181,9 +176,9 @@ final class ZaiUsageClientTests: XCTestCase {
         {"code":200,"data":[],"success":true}
         """.data(using: .utf8)!
 
-        StubURLProtocol.enqueue(.status(429, Data()))
-        StubURLProtocol.enqueue(.status(200, subscriptionJSON))
-        StubURLProtocol.enqueue(.status(200, quotaJSON))
+        StubURLProtocol.enqueue(.status(200, subscriptionJSON), forURLPath: "/api/biz/subscription/list")
+        StubURLProtocol.enqueue(.status(429, Data()), forURLPath: "/api/monitor/usage/quota/limit")
+        StubURLProtocol.enqueue(.status(200, quotaJSON), forURLPath: "/api/monitor/usage/quota/limit")
 
         let client = makeStubbedClient()
         let report = try await client.fetchUsage(apiKey: "test-key")
@@ -194,8 +189,8 @@ final class ZaiUsageClientTests: XCTestCase {
         let errorJSON = """
         {"code":401,"msg":"token expired or incorrect","success":false}
         """.data(using: .utf8)!
-        StubURLProtocol.enqueue(.status(401, errorJSON))
-        StubURLProtocol.enqueue(.status(401, errorJSON))
+        StubURLProtocol.enqueue(.status(401, errorJSON), forURLPath: "/api/monitor/usage/quota/limit")
+        StubURLProtocol.enqueue(.status(401, errorJSON), forURLPath: "/api/biz/subscription/list")
 
         let client = makeStubbedClient()
         do {

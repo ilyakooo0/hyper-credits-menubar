@@ -519,10 +519,22 @@ final class StubURLProtocol: URLProtocol {
         Self.outcomes.append(contentsOf: outcomes)
     }
 
+    /// Queues an outcome for a specific URL path. URL-matched outcomes are consumed
+    /// before the FIFO queue, so concurrent requests to different endpoints each get
+    /// the right response regardless of arrival order.
+    static func enqueue(_ outcome: Outcome, forURLPath path: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        urlMatchedOutcomes[path] = outcome
+    }
+
+    private static var urlMatchedOutcomes: [String: Outcome] = [:]
+
     static func reset() {
         lock.lock()
         defer { lock.unlock() }
         outcomes = []
+        urlMatchedOutcomes = [:]
         lastOutcome = nil
         requests = []
         bodies = []
@@ -548,11 +560,18 @@ final class StubURLProtocol: URLProtocol {
     }
 
     /// Records the request and pops the outcome that should answer it.
+    /// URL-matched outcomes take priority over the FIFO queue, so concurrent
+    /// requests to different endpoints each get the right response.
     private static func nextOutcome(for request: URLRequest) -> Outcome {
         lock.lock()
         defer { lock.unlock() }
         requests.append(request)
         bodies.append(drainBody(from: request))
+
+        if let path = request.url?.path,
+           let matched = urlMatchedOutcomes[path] {
+            return matched
+        }
 
         if !outcomes.isEmpty {
             lastOutcome = outcomes.removeFirst()

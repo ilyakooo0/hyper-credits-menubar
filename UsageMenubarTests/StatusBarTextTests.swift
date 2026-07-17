@@ -13,8 +13,9 @@ final class StatusBarTextTests: XCTestCase {
     func testBothServices() {
         let title = ViewModel.statusBarText(
             balance: 42, isLoading: false,
+            hyperConfigured: true,
             claudeFiveHourPercent: 62, claudeSevenDayPercent: 8,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "⚡42 · 🕐62% · 📅8%")
     }
@@ -22,8 +23,9 @@ final class StatusBarTextTests: XCTestCase {
     func testHyperOnly() {
         let title = ViewModel.statusBarText(
             balance: 42, isLoading: false,
+            hyperConfigured: true,
             claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "⚡42")
     }
@@ -31,8 +33,9 @@ final class StatusBarTextTests: XCTestCase {
     func testClaudeOnly() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: false,
+            hyperConfigured: false,
             claudeFiveHourPercent: 62, claudeSevenDayPercent: 8,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "🕐62% · 📅8%")
     }
@@ -40,29 +43,32 @@ final class StatusBarTextTests: XCTestCase {
     func testLoadingWithNothingToShow() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: true,
+            hyperConfigured: false,
             claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
-        XCTAssertEqual(title, "⚡…")
+        XCTAssertEqual(title, "…")
     }
 
     func testNothingToShow() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: false,
+            hyperConfigured: false,
             claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
-        XCTAssertEqual(title, "⚡?")
+        XCTAssertEqual(title, "")
     }
 
     /// The placeholders only stand in for an *empty* title. Someone who runs Claude Code
-    /// without a Hyper key refreshes every few minutes, and a title that fell back to `⚡…`
+    /// without a Hyper key refreshes every few minutes, and a title that fell back to `…`
     /// each time would blink their percentage away and back.
     func testLoadingKeepsAClaudePercentOnScreen() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: true,
+            hyperConfigured: false,
             claudeFiveHourPercent: 62, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "🕐62%")
     }
@@ -70,8 +76,9 @@ final class StatusBarTextTests: XCTestCase {
     func testLoadingKeepsAStaleBalanceOnScreen() {
         let title = ViewModel.statusBarText(
             balance: 42, isLoading: true,
+            hyperConfigured: true,
             claudeFiveHourPercent: 62, claudeSevenDayPercent: 8,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "⚡42 · 🕐62% · 📅8%")
     }
@@ -79,8 +86,9 @@ final class StatusBarTextTests: XCTestCase {
     func testZeroPercentIsShownRatherThanOmitted() {
         let title = ViewModel.statusBarText(
             balance: 42, isLoading: false,
+            hyperConfigured: true,
             claudeFiveHourPercent: 0, claudeSevenDayPercent: 8,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "⚡42 · 📅8%")
     }
@@ -88,8 +96,9 @@ final class StatusBarTextTests: XCTestCase {
     func testBothClaudeWindowsZero() {
         let title = ViewModel.statusBarText(
             balance: 42, isLoading: false,
+            hyperConfigured: true,
             claudeFiveHourPercent: 0, claudeSevenDayPercent: 0,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "⚡42")
     }
@@ -97,8 +106,9 @@ final class StatusBarTextTests: XCTestCase {
     func testFiveHourOnly() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: false,
+            hyperConfigured: false,
             claudeFiveHourPercent: 62, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "🕐62%")
     }
@@ -106,10 +116,45 @@ final class StatusBarTextTests: XCTestCase {
     func testSevenDayOnly() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: false,
+            hyperConfigured: false,
             claudeFiveHourPercent: nil, claudeSevenDayPercent: 8,
-            zaiFiveHourPercent: nil
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "📅8%")
+    }
+
+    // MARK: - Hyper not configured
+
+    func testHyperNotConfiguredHidesBoltEvenWithBalance() {
+        // balance is non-nil but Hyper is not configured — should not appear.
+        // This can happen briefly during the transition when a key is deleted.
+        let title = ViewModel.statusBarText(
+            balance: 42, isLoading: false,
+            hyperConfigured: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
+        )
+        XCTAssertEqual(title, "")
+    }
+
+    func testHyperNotConfiguredLoadingShowsJustDots() {
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: true,
+            hyperConfigured: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
+        )
+        XCTAssertEqual(title, "…")
+    }
+
+    func testHyperNotConfiguredButClaudeStillShows() {
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: false,
+            hyperConfigured: false,
+            claudeFiveHourPercent: 62, claudeSevenDayPercent: 8,
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: nil
+        )
+        XCTAssertEqual(title, "🕐62% · 📅8%")
     }
 
     // MARK: - z.ai in Title
@@ -117,8 +162,9 @@ final class StatusBarTextTests: XCTestCase {
     func testZaiOnly() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: false,
+            hyperConfigured: false,
             claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: 12
+            zaiFiveHourPercent: 12, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "🤖12%")
     }
@@ -126,8 +172,9 @@ final class StatusBarTextTests: XCTestCase {
     func testZaiWithHyper() {
         let title = ViewModel.statusBarText(
             balance: 42, isLoading: false,
+            hyperConfigured: true,
             claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: 12
+            zaiFiveHourPercent: 12, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "⚡42 · 🤖12%")
     }
@@ -135,8 +182,9 @@ final class StatusBarTextTests: XCTestCase {
     func testZaiWithClaude() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: false,
+            hyperConfigured: false,
             claudeFiveHourPercent: 62, claudeSevenDayPercent: 8,
-            zaiFiveHourPercent: 12
+            zaiFiveHourPercent: 12, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "🕐62% · 📅8% · 🤖12%")
     }
@@ -144,17 +192,19 @@ final class StatusBarTextTests: XCTestCase {
     func testAllThreeServices() {
         let title = ViewModel.statusBarText(
             balance: 42, isLoading: false,
+            hyperConfigured: true,
             claudeFiveHourPercent: 62, claudeSevenDayPercent: 8,
-            zaiFiveHourPercent: 12
+            zaiFiveHourPercent: 12, zaiWeeklyPercent: 3
         )
-        XCTAssertEqual(title, "⚡42 · 🕐62% · 📅8% · 🤖12%")
+        XCTAssertEqual(title, "⚡42 · 🕐62% · 📅8% · 🤖12% · 📆3%")
     }
 
     func testZaiZeroIsOmitted() {
         let title = ViewModel.statusBarText(
             balance: 42, isLoading: false,
+            hyperConfigured: true,
             claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: 0
+            zaiFiveHourPercent: 0, zaiWeeklyPercent: 0
         )
         XCTAssertEqual(title, "⚡42")
     }
@@ -162,10 +212,53 @@ final class StatusBarTextTests: XCTestCase {
     func testLoadingKeepsZaiPercentOnScreen() {
         let title = ViewModel.statusBarText(
             balance: nil, isLoading: true,
+            hyperConfigured: false,
             claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
-            zaiFiveHourPercent: 12
+            zaiFiveHourPercent: 12, zaiWeeklyPercent: nil
         )
         XCTAssertEqual(title, "🤖12%")
+    }
+
+    // MARK: - z.ai Weekly
+
+    func testZaiWeeklyOnly() {
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: false,
+            hyperConfigured: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: 3
+        )
+        XCTAssertEqual(title, "📆3%")
+    }
+
+    func testZaiWeeklyWithFiveHour() {
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: false,
+            hyperConfigured: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
+            zaiFiveHourPercent: 12, zaiWeeklyPercent: 3
+        )
+        XCTAssertEqual(title, "🤖12% · 📆3%")
+    }
+
+    func testZaiWeeklyZeroIsOmitted() {
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: false,
+            hyperConfigured: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
+            zaiFiveHourPercent: 12, zaiWeeklyPercent: 0
+        )
+        XCTAssertEqual(title, "🤖12%")
+    }
+
+    func testLoadingKeepsZaiWeeklyOnScreen() {
+        let title = ViewModel.statusBarText(
+            balance: nil, isLoading: true,
+            hyperConfigured: false,
+            claudeFiveHourPercent: nil, claudeSevenDayPercent: nil,
+            zaiFiveHourPercent: nil, zaiWeeklyPercent: 3
+        )
+        XCTAssertEqual(title, "📆3%")
     }
 
     // MARK: - Claude Window Percentages

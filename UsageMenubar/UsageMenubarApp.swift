@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if let button = statusItem.button {
             button.image = nil
-            button.title = "⚡?"
+            button.title = "…"
             button.target = self
             button.action = #selector(statusItemClicked(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -46,8 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: MenuView(viewModel: viewModel))
 
-        // Observe published changes (balance + isLoading + Claude usage + z.ai usage) to
-        // update the menu bar title. CombineLatest fires when any of them changes.
+        // Observe published changes (balance + isLoading + hyperConfigured +
+        // Claude usage + z.ai usage) to update the menu bar title. CombineLatest
+        // fires when any of them changes.
         //
         // The title is built from the values the publisher hands us, not by reading the
         // view model back: `@Published` emits in `willSet`, so the property still holds
@@ -56,13 +57,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Delivery is hopped through `DispatchQueue.main` rather than `RunLoop.main`,
         // whose Combine scheduler only runs in the default run loop mode — the title
         // would freeze while a menu or a scroll was tracking.
-        statusTextCancellable = Publishers.CombineLatest4(
+        statusTextCancellable = Publishers.CombineLatest5(
             viewModel.$balance,
             viewModel.$isLoading,
+            viewModel.$hyperConfigured,
             viewModel.$claudeUsage,
             viewModel.$zaiUsage
         )
-        .map { balance, isLoading, claudeUsage, zaiUsage in
+        .map { balance, isLoading, hyperConfigured, claudeUsage, zaiUsage in
             let fiveHour = claudeUsage?.fiveHour
                 .map { Int($0.utilization.rounded()) }
             let sevenDay = claudeUsage?.sevenDay
@@ -70,12 +72,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ?? claudeUsage?.sevenDayOpus
                     .map { Int($0.utilization.rounded()) }
             let zaiFiveHour = zaiUsage?.fiveHourPercent
+            let zaiWeekly = zaiUsage?.weeklyPercent
             return ViewModel.statusBarText(
                 balance: balance,
                 isLoading: isLoading,
+                hyperConfigured: hyperConfigured,
                 claudeFiveHourPercent: fiveHour,
                 claudeSevenDayPercent: sevenDay,
-                zaiFiveHourPercent: zaiFiveHour
+                zaiFiveHourPercent: zaiFiveHour,
+                zaiWeeklyPercent: zaiWeekly
             )
         }
         .removeDuplicates()

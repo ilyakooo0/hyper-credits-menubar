@@ -172,12 +172,6 @@ usage-menubar/
 10. **Independent fetches**: `ViewModel.refresh()` runs the Hyper and Claude requests concurrently with `async let`. Neither can fail, stall, or be unconfigured in a way that affects the other.
 11. **No sandbox**: Reading credentials that belong to another app means spawning `/usr/bin/security` and reading a file in the user's home directory, neither of which the App Sandbox permits. The app is distributed ad-hoc signed via Homebrew rather than through the App Store, where the sandbox would be mandatory.
 
-## Credits
-
-- **Author**: Ilya Koo ([@ilyakooo0](https://github.com/ilyakooo0))
-- **API**: [Hyper by Charm](https://hyper.charm.land)
-- **Built with**: Swift 5.9, SwiftUI, macOS 14+
-
 ## License
 
 MIT — see [LICENSE](LICENSE).

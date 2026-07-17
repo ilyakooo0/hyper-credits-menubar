@@ -14,9 +14,12 @@ z.ai Coding Plan usage limits when an API key is entered in settings.
 - `VersionFormatter.swift` — Version string formatting
 
 The status bar title shows `⚡{balance}` (Hyper), `🕐{percent}%` (Claude 5-hour),
-`📅{percent}%` (Claude 7-day), and `🤖{percent}%` (z.ai 5-hour) — each omitted when
-absent or at 0%. The three fetches are independent — `ViewModel.refresh()` runs them
-with `async let`, and any can fail or be unconfigured without touching the others.
+`📅{percent}%` (Claude 7-day), `🤖{percent}%` (z.ai 5-hour), and `📆{percent}%`
+(z.ai weekly) — each omitted when absent or at 0%, and entirely absent when the
+service is not configured (no API key or no credentials). An unconfigured service
+produces no placeholder in the menu bar. The three fetches are independent —
+`ViewModel.refresh()` runs them with `async let`, and any can fail or be
+unconfigured without touching the others.
 
 ## Claude credentials (strictly read-only)
 `ClaudeUsageClient` reads the credentials **Claude Code owns**: its `Claude Code-credentials`
