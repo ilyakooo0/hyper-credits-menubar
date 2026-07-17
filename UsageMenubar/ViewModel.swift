@@ -238,11 +238,11 @@ final class ViewModel: ObservableObject {
     }
 
     /// The text to show in the menu bar. Each configured provider contributes a
-    /// segment; segments are separated by ` · ` (middle dot). Within a segment,
-    /// windows are separated by a space. An unconfigured service produces no
-    /// segment — no placeholder, no icon.
+    /// segment prefixed with a provider emoji; segments are separated by ` · `
+    /// (middle dot). Within a segment, windows are listed as bare percentages
+    /// separated by spaces. An unconfigured service produces no segment.
     ///
-    /// Example: `⚡42 · 🕐62% 📅8% · 🕑12% 📆3%`
+    /// Example: `⚡42 · 🅲62% 8% · 🅉12% 3%`
     ///
     /// Takes its values as parameters rather than reading the properties: `@Published`
     /// publishes in `willSet`, so a Combine subscriber that called back into the view
@@ -263,28 +263,28 @@ final class ViewModel: ObservableObject {
             segments.append("⚡\(formatBalance(balance))")
         }
 
-        // Claude — windows joined by space within the segment
+        // Claude — provider emoji + bare percentages
         var claudeWindows: [String] = []
         if let fiveHour = claudeFiveHourPercent, fiveHour > 0 {
-            claudeWindows.append("🕐\(fiveHour)%")
+            claudeWindows.append("\(fiveHour)%")
         }
         if let sevenDay = claudeSevenDayPercent, sevenDay > 0 {
-            claudeWindows.append("📅\(sevenDay)%")
+            claudeWindows.append("\(sevenDay)%")
         }
         if !claudeWindows.isEmpty {
-            segments.append(claudeWindows.joined(separator: " "))
+            segments.append("🅲" + claudeWindows.joined(separator: " "))
         }
 
-        // z.ai — windows joined by space within the segment
+        // z.ai — provider emoji + bare percentages
         var zaiWindows: [String] = []
         if let zaiFiveHour = zaiFiveHourPercent, zaiFiveHour > 0 {
-            zaiWindows.append("🕑\(zaiFiveHour)%")
+            zaiWindows.append("\(zaiFiveHour)%")
         }
         if let zaiWeekly = zaiWeeklyPercent, zaiWeekly > 0 {
-            zaiWindows.append("📆\(zaiWeekly)%")
+            zaiWindows.append("\(zaiWeekly)%")
         }
         if !zaiWindows.isEmpty {
-            segments.append(zaiWindows.joined(separator: " "))
+            segments.append("🅉" + zaiWindows.joined(separator: " "))
         }
 
         if segments.isEmpty {
