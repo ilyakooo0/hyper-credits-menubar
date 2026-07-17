@@ -259,7 +259,7 @@ struct MenuView: View {
                 VStack(spacing: 8) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         headlineNumber(
-                            text: "🅲 \(percent)%",
+                            text: "⁕ \\(percent)%",
                             color: Self.usageColor(percent),
                             trend: viewModel.claudeTrend,
                             copiedConfirmation: viewModel.copiedClaudeConfirmation,
@@ -379,7 +379,7 @@ struct MenuView: View {
                 VStack(spacing: 8) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         headlineNumber(
-                            text: "🅉 \(fiveHour)%",
+                            text: "Z \\(fiveHour)%",
                             color: Self.usageColor(fiveHour),
                             trend: viewModel.zaiTrend,
                             copiedConfirmation: viewModel.copiedZaiConfirmation,

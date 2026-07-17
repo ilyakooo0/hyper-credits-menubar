@@ -243,7 +243,7 @@ final class ViewModel: ObservableObject {
     /// separated by spaces. An unconfigured service produces no segment.
     /// When z.ai is in peak hours, a 🔶 marker is appended to the z.ai segment.
     ///
-    /// Example: `⚡42 · 🅲62% 8% · 🅉12% 3%🔶`
+    /// Example: `⚡42 · ⁕62% 8% · Z12% 3%🔶`
     ///
     /// Takes its values as parameters rather than reading the properties: `@Published`
     /// publishes in `willSet`, so a Combine subscriber that called back into the view
@@ -274,7 +274,7 @@ final class ViewModel: ObservableObject {
             claudeWindows.append("\(sevenDay)%")
         }
         if !claudeWindows.isEmpty {
-            segments.append("🅲" + claudeWindows.joined(separator: " "))
+            segments.append("⁕" + claudeWindows.joined(separator: " "))
         }
 
         // z.ai — provider emoji + bare percentages
@@ -286,7 +286,7 @@ final class ViewModel: ObservableObject {
             zaiWindows.append("\(zaiWeekly)%")
         }
         if !zaiWindows.isEmpty {
-            var segment = "🅉" + zaiWindows.joined(separator: " ")
+            var segment = "Z" + zaiWindows.joined(separator: " ")
             if zaiInPeakHours {
                 segment += "🔶"
             }

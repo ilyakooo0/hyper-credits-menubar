@@ -18,7 +18,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "⚡42 · \u{1F172}62% 8%")
+        XCTAssertEqual(title, "⚡42 · \u{2055}62% 8%")
     }
 
     func testHyperOnly() {
@@ -40,7 +40,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F172}62% 8%")
+        XCTAssertEqual(title, "\u{2055}62% 8%")
     }
 
     func testLoadingWithNothingToShow() {
@@ -76,7 +76,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F172}62%")
+        XCTAssertEqual(title, "\u{2055}62%")
     }
 
     func testLoadingKeepsAStaleBalanceOnScreen() {
@@ -87,7 +87,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "⚡42 · \u{1F172}62% 8%")
+        XCTAssertEqual(title, "⚡42 · \u{2055}62% 8%")
     }
 
     func testZeroPercentIsShown() {
@@ -98,7 +98,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "⚡42 · \u{1F172}0% 8%")
+        XCTAssertEqual(title, "⚡42 · \u{2055}0% 8%")
     }
 
     func testBothClaudeWindowsZero() {
@@ -109,7 +109,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "⚡42 · \u{1F172}0% 0%")
+        XCTAssertEqual(title, "⚡42 · \u{2055}0% 0%")
     }
 
     func testFiveHourOnly() {
@@ -120,7 +120,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F172}62%")
+        XCTAssertEqual(title, "\u{2055}62%")
     }
 
     func testSevenDayOnly() {
@@ -131,7 +131,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F172}8%")
+        XCTAssertEqual(title, "\u{2055}8%")
     }
 
     // MARK: - Hyper not configured
@@ -168,7 +168,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F172}62% 8%")
+        XCTAssertEqual(title, "\u{2055}62% 8%")
     }
 
     // MARK: - z.ai in Title
@@ -181,7 +181,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F149}12%")
+        XCTAssertEqual(title, "\u{005A}12%")
     }
 
     func testZaiWithHyper() {
@@ -192,7 +192,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "⚡42 · \u{1F149}12%")
+        XCTAssertEqual(title, "⚡42 · \u{005A}12%")
     }
 
     func testZaiWithClaude() {
@@ -203,7 +203,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F172}62% 8% · \u{1F149}12%")
+        XCTAssertEqual(title, "\u{2055}62% 8% · \u{005A}12%")
     }
 
     func testAllThreeServices() {
@@ -214,7 +214,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: 3,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "⚡42 · \u{1F172}62% 8% · \u{1F149}12% 3%")
+        XCTAssertEqual(title, "⚡42 · \u{2055}62% 8% · \u{005A}12% 3%")
     }
 
     func testZaiZeroIsShown() {
@@ -225,7 +225,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 0, zaiWeeklyPercent: 0,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "⚡42 · \u{1F149}0% 0%")
+        XCTAssertEqual(title, "⚡42 · \u{005A}0% 0%")
     }
 
     func testLoadingKeepsZaiPercentOnScreen() {
@@ -236,7 +236,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: nil,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F149}12%")
+        XCTAssertEqual(title, "\u{005A}12%")
     }
 
     // MARK: - z.ai Weekly
@@ -249,7 +249,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: 3,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F149}3%")
+        XCTAssertEqual(title, "\u{005A}3%")
     }
 
     func testZaiWeeklyWithFiveHour() {
@@ -260,7 +260,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: 3,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F149}12% 3%")
+        XCTAssertEqual(title, "\u{005A}12% 3%")
     }
 
     func testZaiWeeklyZeroIsShown() {
@@ -271,7 +271,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: 0,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F149}12% 0%")
+        XCTAssertEqual(title, "\u{005A}12% 0%")
     }
 
     func testLoadingKeepsZaiWeeklyOnScreen() {
@@ -282,7 +282,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: nil, zaiWeeklyPercent: 3,
             zaiInPeakHours: false
         )
-        XCTAssertEqual(title, "\u{1F149}3%")
+        XCTAssertEqual(title, "\u{005A}3%")
     }
 
     // MARK: - z.ai Peak Hours
@@ -295,7 +295,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: 3,
             zaiInPeakHours: true
         )
-        XCTAssertEqual(title, "⚡42 · \u{1F172}62% 8% · \u{1F149}12% 3%\u{1F536}")
+        XCTAssertEqual(title, "⚡42 · \u{2055}62% 8% · \u{005A}12% 3%\u{1F536}")
     }
 
     func testPeakHoursWithZaiOnly() {
@@ -306,7 +306,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiFiveHourPercent: 12, zaiWeeklyPercent: nil,
             zaiInPeakHours: true
         )
-        XCTAssertEqual(title, "\u{1F149}12%\u{1F536}")
+        XCTAssertEqual(title, "\u{005A}12%\u{1F536}")
     }
 
     func testPeakHoursIgnoredWhenZaiNotConfigured() {
@@ -318,7 +318,7 @@ final class StatusBarTextTests: XCTestCase {
             zaiInPeakHours: true
         )
         // No z.ai segment, so peak marker has nothing to attach to.
-        XCTAssertEqual(title, "⚡42 · \u{1F172}62% 8%")
+        XCTAssertEqual(title, "⚡42 · \u{2055}62% 8%")
     }
 
     // MARK: - Claude Window Percentages

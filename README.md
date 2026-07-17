@@ -9,8 +9,8 @@ A macOS menu bar application that displays usage limits and credit balances for 
 ## Features
 
 - ⚡ **Hyper credits** — balance from `hyper.charm.land`, with sparkline trend, click-to-copy, and low-balance notifications
-- 🤖 **Claude Code limits** — Pro/Max 5-hour and 7-day usage windows, with countdown to next reset. No setup: if you've signed in with the Claude Code CLI, it just appears
-- 🤖 **z.ai Coding Plan** — 5-hour and weekly token quota percentages, with reset countdowns. Enter your API key in settings
+- ⁕ **Claude Code limits** — Pro/Max 5-hour and 7-day usage windows, with countdown to next reset. No setup: if you've signed in with the Claude Code CLI, it just appears
+- Z **z.ai Coding Plan** — 5-hour and weekly token quota percentages, with reset countdowns. Enter your API key in settings
 - 🔄 **Auto-refresh** — configurable interval (1m / 5m / 15m / 30m), plus refresh on wake from sleep
 - 🖱️ **Right-click menu** — quick access to Refresh and Quit
 - 🔒 **Keychain storage** — API keys stored securely in macOS Keychain
@@ -24,10 +24,10 @@ Each service shows an emoji-prefixed segment when configured and above 0%:
 | Service | Emoji | Example |
 |---------|-------|---------|
 | Hyper balance | ⚡ | `⚡42` |
-| Claude 5-hour | 🕐 | `🕐62%` |
-| Claude 7-day | 📅 | `📅8%` |
-| z.ai 5-hour | 🤖 | `🤖12%` |
-| z.ai weekly | 📆 | `📆3%` |
+| Claude 5-hour | ⁕ | `⁕62%` |
+| Claude 7-day | ⁕ | `⁕8%` |
+| z.ai 5-hour | Z | `Z12%` |
+| z.ai weekly | Z | `Z3%` |
 
 Unconfigured services don't appear at all — no placeholder, no icon.
 

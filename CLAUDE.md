@@ -20,8 +20,8 @@ click-to-copy on the headline, and threshold-crossing notifications.
 - `KeychainHelper.swift` — Keychain wrapper (KeychainStore + KeychainHelper + ZaiKeychainHelper)
 - `VersionFormatter.swift` — Version string formatting
 
-The status bar title shows `⚡{balance}` (Hyper), `🕐{percent}%` (Claude 5-hour),
-`📅{percent}%` (Claude 7-day), `🤖{percent}%` (z.ai 5-hour), and `📆{percent}%`
+The status bar title shows `⚡{balance}` (Hyper), `⁕{percent}%` (Claude 5-hour),
+`⁕{percent}%` (Claude 7-day), `Z{percent}%` (z.ai 5-hour), and `Z{percent}%`
 (z.ai weekly) — each omitted when absent or at 0%, and entirely absent when the
 service is not configured (no API key or no credentials). An unconfigured service
 produces no placeholder in the menu bar. The three fetches are independent —
