@@ -57,14 +57,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Delivery is hopped through `DispatchQueue.main` rather than `RunLoop.main`,
         // whose Combine scheduler only runs in the default run loop mode — the title
         // would freeze while a menu or a scroll was tracking.
-        statusTextCancellable = Publishers.CombineLatest5(
+        // Combine has CombineLatest4 but not 5, so nest: outer combines
+        // balance + isLoading + hyperConfigured with an inner that merges
+        // claudeUsage + zaiUsage. The inner Just(()) is a dummy third stream
+        // to satisfy CombineLatest3 — it fires once and never again, so the
+        // inner effectively republishes claudeUsage and zaiUsage changes.
+        statusTextCancellable = Publishers.CombineLatest4(
             viewModel.$balance,
             viewModel.$isLoading,
             viewModel.$hyperConfigured,
-            viewModel.$claudeUsage,
-            viewModel.$zaiUsage
+            Publishers.CombineLatest3(
+                viewModel.$claudeUsage,
+                viewModel.$zaiUsage,
+                Just<Void>(())
+            )
         )
-        .map { balance, isLoading, hyperConfigured, claudeUsage, zaiUsage in
+        .map { balance, isLoading, hyperConfigured, claudeAndZai in
+            let (claudeUsage, zaiUsage, _) = claudeAndZai
             let fiveHour = claudeUsage?.fiveHour
                 .map { Int($0.utilization.rounded()) }
             let sevenDay = claudeUsage?.sevenDay
